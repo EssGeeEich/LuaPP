@@ -68,4 +68,4 @@ int main()
 
 Erasing whitespaces and comments, this snippet is about 40 lines long, including the definition of our MyClass!
 
-You can also check `main.cpp` in the `source/` directory to see a demo about wrapping `std::string`.
+You can also check [`main.cpp`](https://github.com/EssGeeEich/LuaPP/blob/master/src/main.cpp) to see a wrapping demo for `std::string`.
