@@ -141,6 +141,11 @@ namespace Lua {
 			luaL_requiref(state,metatable::luaname(),&ObjectWrapper::ApplyStateFunc,1);
 			lua_pop(state,1);
 		}
+	public:
+		// Push a new T to the stack
+		static int PushNew(lua_State* state) {
+			return ConstructObject(state);
+		}
 	};
 }
 
