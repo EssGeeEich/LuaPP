@@ -6,23 +6,24 @@ This is the official project page for SGH's LuaPP - Lua C++ Wrapper!
 Look at this piece of code, which shows you how easy it is to create a Lua context and wrap a C++ class:
 
 ```c++
-#include <iostream> // For cout and endl. Also included from state.h
-#include <cstring> // For strlen.
+#include <iostream> // For cout, endl and string. Also included from state.h
 #include <luapp/state.h> // Everything under the Lua namespace.
 
 // Consider a class like this:
 class MyClass {
 public:
-  void print(char const* text) const {
+  void print(std::string const& text) const {
     std::cout << text << std::endl;
   }
-  void print_backwards(char const* text) const {
-    size_t len = strlen(text);
-    for(size_t i = len; i; --i)
+  void print_backwards(std::string const& text) const {
+    for(size_t i = text.size(); i; --i)
     {
       std::cout << text[i-1];
     }
     std::cout << std::endl;
+  }
+  std::string return_value(std::string const& input) const {
+    return input;
   }
 };
 
@@ -45,6 +46,7 @@ template <> struct MetatableDescriptor<MyClass> {
       // TransformClassCall will convert our functions to accept parameters from lua_State!
       mt["print"] = Lua::TransformClassCall(&MyClass::print);
       mt["rprint"] = Lua::TransformClassCall(&MyClass::print_backwards);
+      mt["rv"] = Lua::TransformClassCall(&MyClass::return_value);
     }
     return mt;
   }
@@ -57,8 +59,14 @@ int main()
   // The following line registers MyClass.create to construct and return a MyClass instance.
   state.AddObject<MyClass>();
   
-  state.loadstring("x = MyClass.create(); x:print('Hello!'); x:rprint('Hello!');");
-  
+  state.loadstring(
+    "x = MyClass.create()\n"\
+    "x:print('Hello!')\n"\
+    "x:rprint('Hello!')\n"\
+    "x:print(\n"\
+    "    x:rv('Printing a return value!')\n"\
+    ")"
+  );
   // The following line will raise an 'invalid argument' lua error, which can be caught with pcall.
   // state.loadstring("x = MyClass.create(); x:print({1,2,3});");
   state.call();
