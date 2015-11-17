@@ -18,45 +18,33 @@
 #include <functional>
 #include <stdexcept>
 #include <lua.hpp>
-
-template <typename ...> struct FromLua;
-template <typename> struct LuaPush;
-template <> struct LuaPush<void> { static int push(lua_State*, ...) { return 0; } };
+#include "typeext.h"
 
 namespace Lua {
-	class invalid_lua_arg : public std::exception {
-		int m_which;
-		std::string m_what;
-	public:
-		invalid_lua_arg(lua_State* state, int id, std::string what = std::string());
-		int which() const;
-		char const* what() const noexcept override;
-	};
-
 	namespace impl {
 		template <typename RetVal, int ArgCount> struct TransformClassCallImpl {
 			template <typename Class, typename ... Args>
 			static int CallAndPush(Class& instance, RetVal (Class::* fptr)(Args...), lua_State* state, int firstID)
 			{
-				return LuaPush<typename std::decay<RetVal>::type>::push(state,(instance.*fptr)(FromLua<Args...>::transform(state,firstID--)));
+				return LuaPush<typename GenericDecay<RetVal>::type>::push(state,(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--)));
 			}
 			template <typename Class, typename ... Args>
 			static int CallAndPush(Class& instance, RetVal (Class::* fptr)(Args...) const, lua_State* state, int firstID)
 			{
-				return LuaPush<typename std::decay<RetVal>::type>::push(state,(instance.*fptr)(FromLua<Args...>::transform(state,firstID--)));
+				return LuaPush<typename GenericDecay<RetVal>::type>::push(state,(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--)));
 			}
 		};
 		template <int ArgCount> struct TransformClassCallImpl<void, ArgCount> {
 			template <typename Class, typename ... Args>
 			static int CallAndPush(Class& instance, void (Class::* fptr)(Args...), lua_State* state, int firstID)
 			{
-				(instance.*fptr)(FromLua<Args...>::transform(state,firstID--));
+				(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--));
 				return 0;
 			}
 			template <typename Class, typename ... Args>
 			static int CallAndPush(Class& instance, void (Class::* fptr)(Args...) const, lua_State* state, int firstID)
 			{
-				(instance.*fptr)(FromLua<Args...>::transform(state,firstID--));
+				(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--));
 				return 0;
 			}
 		};
@@ -64,12 +52,12 @@ namespace Lua {
 			template <typename Class>
 			static int CallAndPush(Class& instance, RetVal (Class::* fptr)(), lua_State* state, int firstID)
 			{
-				return LuaPush<typename std::decay<RetVal>::type>::push(state,(instance.*fptr)());
+				return LuaPush<typename GenericDecay<RetVal>::type>::push(state,(instance.*fptr)());
 			}
 			template <typename Class>
 			static int CallAndPush(Class& instance, RetVal (Class::* fptr)() const, lua_State* state, int firstID)
 			{
-				return LuaPush<typename std::decay<RetVal>::type>::push(state,(instance.*fptr)());
+				return LuaPush<typename GenericDecay<RetVal>::type>::push(state,(instance.*fptr)());
 			}
 		};
 		template <> struct TransformClassCallImpl<void, 0> {

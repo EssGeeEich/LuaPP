@@ -17,8 +17,40 @@
 #include <lua.hpp>
 #include <string>
 #include <vector>
+#include <map>
 #include "library.h"
-#include "transform.h"
+
+namespace Lua {
+	class invalid_lua_arg : public std::exception {
+		int m_which;
+		std::string m_what;
+	public:
+		invalid_lua_arg(lua_State* state, int id, std::string what = std::string());
+		int which() const;
+		char const* what() const noexcept override;
+	};
+	
+	template <typename T> struct GenericDecay {
+		typedef T type;
+	};
+	template <typename T> struct GenericDecay<T*> {
+		typedef T* type;
+	};
+	template <typename T> struct GenericDecay<T const&> {
+		typedef T type;
+	};
+	template <typename T> struct GenericDecay<T&> {
+		typedef T type;
+	};
+	template <typename T> struct GenericDecay<T&&> {
+		typedef T type;
+	};
+}
+
+
+template <typename ...> struct FromLua;
+template <typename> struct LuaPush;
+template <> struct LuaPush<void> { static int push(lua_State*, ...) { return 0; } };
 
 // Lua ---> C++ Function
 
