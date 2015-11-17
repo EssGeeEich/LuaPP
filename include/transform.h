@@ -22,53 +22,53 @@
 
 namespace Lua {
 	namespace impl {
-		template <typename RetVal, int ArgCount> struct TransformClassCallImpl {
+		template <typename RetVal, int ArgCount, typename ActRetVal> struct TransformClassCallImpl {
 			template <typename Class, typename ... Args>
-			static int CallAndPush(Class& instance, RetVal (Class::* fptr)(Args...), lua_State* state, int firstID)
+			static int CallAndPush(Class& instance, ActRetVal (Class::* fptr)(Args...), lua_State* state, int firstID)
 			{
-				return LuaPush<typename GenericDecay<RetVal>::type>::push(state,(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--)));
+				return LuaPush<RetVal>::push(state,(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--)));
 			}
 			template <typename Class, typename ... Args>
-			static int CallAndPush(Class& instance, RetVal (Class::* fptr)(Args...) const, lua_State* state, int firstID)
+			static int CallAndPush(Class& instance, ActRetVal (Class::* fptr)(Args...) const, lua_State* state, int firstID)
 			{
-				return LuaPush<typename GenericDecay<RetVal>::type>::push(state,(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--)));
+				return LuaPush<RetVal>::push(state,(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--)));
 			}
 		};
-		template <int ArgCount> struct TransformClassCallImpl<void, ArgCount> {
+		template <int ArgCount, typename ActRetVal> struct TransformClassCallImpl<void, ArgCount, ActRetVal> {
 			template <typename Class, typename ... Args>
-			static int CallAndPush(Class& instance, void (Class::* fptr)(Args...), lua_State* state, int firstID)
+			static int CallAndPush(Class& instance, ActRetVal (Class::* fptr)(Args...), lua_State* state, int firstID)
 			{
 				(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--));
 				return 0;
 			}
 			template <typename Class, typename ... Args>
-			static int CallAndPush(Class& instance, void (Class::* fptr)(Args...) const, lua_State* state, int firstID)
+			static int CallAndPush(Class& instance, ActRetVal (Class::* fptr)(Args...) const, lua_State* state, int firstID)
 			{
 				(instance.*fptr)(FromLua<typename GenericDecay<Args...>::type>::transform(state,firstID--));
 				return 0;
 			}
 		};
-		template <typename RetVal> struct TransformClassCallImpl<RetVal, 0> {
+		template <typename RetVal, typename ActRetVal> struct TransformClassCallImpl<RetVal, 0, ActRetVal> {
 			template <typename Class>
-			static int CallAndPush(Class& instance, RetVal (Class::* fptr)(), lua_State* state, int firstID)
+			static int CallAndPush(Class& instance, ActRetVal (Class::* fptr)(), lua_State* state, int firstID)
 			{
-				return LuaPush<typename GenericDecay<RetVal>::type>::push(state,(instance.*fptr)());
+				return LuaPush<RetVal>::push(state,(instance.*fptr)());
 			}
 			template <typename Class>
-			static int CallAndPush(Class& instance, RetVal (Class::* fptr)() const, lua_State* state, int firstID)
+			static int CallAndPush(Class& instance, ActRetVal (Class::* fptr)() const, lua_State* state, int firstID)
 			{
-				return LuaPush<typename GenericDecay<RetVal>::type>::push(state,(instance.*fptr)());
+				return LuaPush<RetVal>::push(state,(instance.*fptr)());
 			}
 		};
-		template <> struct TransformClassCallImpl<void, 0> {
+		template <typename ActRetVal> struct TransformClassCallImpl<void, 0, ActRetVal> {
 			template <typename Class>
-			static int CallAndPush(Class& instance, void (Class::* fptr)(), lua_State*, int)
+			static int CallAndPush(Class& instance, ActRetVal (Class::* fptr)(), lua_State*, int)
 			{
 				(instance.*fptr)();
 				return 0;
 			}
 			template <typename Class>
-			static int CallAndPush(Class& instance, void (Class::* fptr)() const, lua_State*, int)
+			static int CallAndPush(Class& instance, ActRetVal (Class::* fptr)() const, lua_State*, int)
 			{
 				(instance.*fptr)();
 				return 0;
@@ -85,7 +85,7 @@ namespace Lua {
 				return luaL_error(state,"C++ Method: Invalid argument count!");
 			}
 			try {
-				return impl::TransformClassCallImpl<RetVal,sizeof...(Args)>::CallAndPush(instance,fptr,state,lua_gettop(state));
+				return impl::TransformClassCallImpl<typename ReturnDecay<RetVal>::type,sizeof...(Args),RetVal>::CallAndPush(instance,fptr,state,lua_gettop(state));
 			} catch(invalid_lua_arg& e) {
 				return luaL_error(state,(std::string("C++ Method: ")+e.what()).c_str(),e.which());
 			}
@@ -100,7 +100,7 @@ namespace Lua {
 				return luaL_error(state,"C++ Method: Invalid argument count!");
 			}
 			try {
-				return impl::TransformClassCallImpl<RetVal,sizeof...(Args)>::CallAndPush(instance,fptr,state,lua_gettop(state));
+				return impl::TransformClassCallImpl<typename ReturnDecay<RetVal>::type,sizeof...(Args),RetVal>::CallAndPush(instance,fptr,state,lua_gettop(state));
 			} catch(invalid_lua_arg& e) {
 				return luaL_error(state,(std::string("C++ Method: ")+e.what()).c_str(),e.which());
 			}

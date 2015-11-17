@@ -45,6 +45,22 @@ namespace Lua {
 	template <typename T> struct GenericDecay<T&&> {
 		typedef T type;
 	};
+	
+	template <typename T> struct ReturnDecay {
+		typedef T type;
+	};
+	template <typename T> struct ReturnDecay<T*> {
+		typedef T* type;
+	};
+	template <typename T> struct ReturnDecay<T const&> {
+		typedef T type;
+	};
+	template <typename T> struct ReturnDecay<T&> {
+		typedef void type;
+	};
+	template <typename T> struct ReturnDecay<T&&> {
+		typedef T type;
+	};
 }
 
 
