@@ -70,4 +70,4 @@ Erasing whitespaces and comments, this snippet is about 40 lines long, including
 
 You can also check [`main.cpp`](https://github.com/EssGeeEich/LuaPP/blob/master/src/main.cpp) to see a wrapping demo for `std::string`.
 
-Please note that LuaPP Requires C++11 and a Lua library installed. It has been developed with Lua v5.3.
+Please note that LuaPP requires C++11 and a Lua library installed. It has been developed with Lua v5.3.
