@@ -1,2 +1,4 @@
-# Lua-
-Lua++ - Lua C++ Wrapper
+# LuaPP
+LuaPP - Lua C++ Wrapper
+
+
