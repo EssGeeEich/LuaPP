@@ -110,12 +110,7 @@ namespace Lua {
 		}
 
 		static int ConstructObject(lua_State* state) {
-			T* p = (T*)lua_newuserdata(state,sizeof(T));
-			if(!p)
-				return 0;
-			new (p) T();
-			luaL_setmetatable(state, metatable::name());
-			return 1;
+			return PushNew(state) ? 1 : 0;
 		}
 		static int ApplyStateFunc(lua_State* state) {
 			luaL_Reg reg[2] = {
@@ -143,8 +138,13 @@ namespace Lua {
 		}
 	public:
 		// Push a new T to the stack
-		static int PushNew(lua_State* state) {
-			return ConstructObject(state);
+		static T* PushNew(lua_State* state) {
+			T* p = (T*)lua_newuserdata(state,sizeof(T));
+			if(!p)
+				return nullptr;
+			new (p) T();
+			luaL_setmetatable(state, metatable::name());
+			return p;
 		}
 	};
 }
