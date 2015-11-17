@@ -16,24 +16,21 @@
 #define __LUAPP_TRANSFORM_H__
 
 #include <functional>
+#include <stdexcept>
 #include <lua.hpp>
 
 template <typename ...> struct FromLua;
 template <typename> struct LuaPush;
 template <> struct LuaPush<void> { static int push(lua_State*, ...) { return 0; } };
-template <> struct LuaPush<std::string> {
-	static int push(lua_State* state, std::string const& p) {
-		lua_pushlstring(state,p.c_str(),p.size());
-		return 1;
-	}
-};
 
 namespace Lua {
-	class invalid_lua_arg {
+	class invalid_lua_arg : public std::exception {
 		int m_which;
+		std::string m_what;
 	public:
-		invalid_lua_arg(lua_State* state, int id);
+		invalid_lua_arg(lua_State* state, int id, std::string what = std::string());
 		int which() const;
+		char const* what() const noexcept override;
 	};
 
 	namespace impl {
@@ -97,12 +94,12 @@ namespace Lua {
 		return [=](Class& instance, lua_State* state) -> int {
 			if(lua_gettop(state) < static_cast<int>(sizeof...(Args)))
 			{
-				return luaL_error(state,"Invalid argument count!");
+				return luaL_error(state,"C++ Method: Invalid argument count!");
 			}
 			try {
 				return impl::TransformClassCallImpl<RetVal,sizeof...(Args)>::CallAndPush(instance,fptr,state,lua_gettop(state));
 			} catch(invalid_lua_arg& e) {
-				return luaL_error(state,"Invalid argument %d!", e.which());
+				return luaL_error(state,(std::string("C++ Method: ")+e.what()).c_str(),e.which());
 			}
 		};
 	}
@@ -112,12 +109,12 @@ namespace Lua {
 		return [=](Class& instance, lua_State* state) -> int {
 			if(lua_gettop(state) < static_cast<int>(sizeof...(Args)))
 			{
-				return luaL_error(state,"Invalid argument count!");
+				return luaL_error(state,"C++ Method: Invalid argument count!");
 			}
 			try {
 				return impl::TransformClassCallImpl<RetVal,sizeof...(Args)>::CallAndPush(instance,fptr,state,lua_gettop(state));
 			} catch(invalid_lua_arg& e) {
-				return luaL_error(state,"Invalid argument %d!", e.which());
+				return luaL_error(state,(std::string("C++ Method: ")+e.what()).c_str(),e.which());
 			}
 		};
 	}

@@ -13,9 +13,14 @@
 */
 
 #include "transform.h"
+#include <utility>
 
 namespace Lua {
-	invalid_lua_arg::invalid_lua_arg(lua_State* state, int id)
-		: m_which( (lua_gettop(state) - id) + 1 ) {}
+	invalid_lua_arg::invalid_lua_arg(lua_State* state, int id, std::string what)
+		: m_which( (lua_gettop(state) - id) + 1 ), m_what(std::move(what)) {
+		if(m_what.empty())
+			m_what = "Invalid argument: %d!";
+	}
 	int invalid_lua_arg::which() const { return m_which; }
+	char const* invalid_lua_arg::what() const noexcept { return m_what.c_str(); }
 }
