@@ -20,7 +20,11 @@ namespace Lua {
 	AutoState::~AutoState() { if(m_state) lua_close(m_state); }
 	lua_State* AutoState::get() const { return m_state; }
 	
-	State State::create() { State s; s.m_state = std::shared_ptr<AutoState>(new AutoState(luaL_newstate())); return s; }
+    State State::create() {
+        State s;
+        s.m_state = std::shared_ptr<AutoState>(new AutoState(luaL_newstate()));
+        return s;
+    }
 	State::State() {}
 	State::State(State const& o) : m_state(o.m_state) {}
 	State::State(State&& o) : m_state(std::move(o.m_state)) {}
@@ -53,7 +57,10 @@ namespace Lua {
 	bool State::IsAcceptableIndex(int index) {
 		return type(index) != TP_NONE;
 	}
-	
+    void State::luapp_register_metatables() {
+        LuaFunctor::Register(GetState());
+    }
+
 	int State::absindex(int index) { return lua_absindex(GetState(),index); }
 	void State::arith(Operator op) { return lua_arith(GetState(),static_cast<int>(op)); }
 	lua_CFunction State::atpanic(lua_CFunction f) { return lua_atpanic(GetState(),f); }
@@ -195,7 +202,7 @@ namespace Lua {
 		return std::string(str,sz);
 	}
 	
-	void State::Push(Variable const& var) {
+    void State::luapp_push(Variable const& var) {
 		Bool const* a = nullptr;
 		LightUserData const* b = nullptr;
 		Number const* c = nullptr;
@@ -204,37 +211,37 @@ namespace Lua {
 		CFunction const* f = nullptr;
 		
 		if(var.IsNil())
-			pushnil();
+            pushnil();
 		else if(var.IsBool(a) && a)
-			pushboolean(a->get());
+            pushboolean(a->get());
 		else if(var.IsLightUserData(b) && b)
-			pushlightuserdata(b->get());
+            pushlightuserdata(b->get());
 		else if(var.IsNumber(c) && c)
-			pushnumber(c->get());
+            pushnumber(c->get());
 		else if(var.IsString(d) && d)
-			pushstdstring(d->get());
+            pushstdstring(d->get());
 		else if(var.IsTable(e) && e)
 		{
 			createtable(0,e->get().size());
 			int top = gettop();
 			for(auto it = e->get().begin(); it != e->get().end(); ++it)
 			{
-				Push(it->first);
+                luapp_push(it->first);
 				if(it->second)
-					Push(*it->second);
+                    luapp_push(*it->second);
 				else
-					Push(nil);
+                    luapp_push(nil);
 				settable(top);
 			}
 		}
 		else if(var.IsCFunction(f) && f)
-			pushcfunction(f->get());
+            pushcfunction(f->get());
 	}
-	void State::Push(nil_t const&) {
-		pushnil();
+    void State::luapp_push(nil_t const&) {
+        pushnil();
 	}
 	
-	Variable* State::Read(int variable) {
+    Variable* State::luapp_read(int variable) {
 		Type t = type(variable);
 		switch(t)
 		{
@@ -254,7 +261,7 @@ namespace Lua {
 				{
 					pTable->get().insert(std::make_pair<String,std::shared_ptr<Variable>>(
 						String(tostdstring(-2)),
-						std::shared_ptr<Variable>(Read(-1))
+                        std::shared_ptr<Variable>(luapp_read(-1))
 					));
 				}
 				settop(top);
@@ -279,13 +286,16 @@ namespace Lua {
 		return nullptr;
 	}
 	
-	Reference State::PopReference(int table) {
+    Reference State::luapp_pop_reference(int table) {
 		return Reference(ref(table));
 	}
-	void State::Push(const Reference& ref, int table) {
+    void State::luapp_push_reference(const Reference& ref, int table) {
 		rawgeti(table,ref.key());
 	}
-	void State::DestroyReference(const Reference& ref, int table) {
+    void State::luapp_destroy_reference(const Reference& ref, int table) {
 		unref(table,ref.key());
 	}
+    int State::luapp_push_translated_function(std::function<int (lua_State *)> const& function) {
+        return LuaFunctor::Push(GetState(), function);
+    }
 }

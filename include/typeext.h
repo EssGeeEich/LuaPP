@@ -19,53 +19,20 @@
 #include <vector>
 #include <map>
 #include "library.h"
+#include "util.h"
 
-namespace Lua {
-	class invalid_lua_arg : public std::exception {
-		int m_which;
-		std::string m_what;
-	public:
-		invalid_lua_arg(lua_State* state, int id, std::string what = std::string());
-		int which() const;
-		char const* what() const noexcept override;
-	};
-	
-	template <typename T> struct GenericDecay {
-		typedef T type;
-	};
-	template <typename T> struct GenericDecay<T*> {
-		typedef T* type;
-	};
-	template <typename T> struct GenericDecay<T const&> {
-		typedef T type;
-	};
-	template <typename T> struct GenericDecay<T&> {
-		typedef T type;
-	};
-	template <typename T> struct GenericDecay<T&&> {
-		typedef T type;
-	};
-	
-	template <typename T> struct ReturnDecay {
-		typedef T type;
-	};
-	template <typename T> struct ReturnDecay<T*> {
-		typedef T* type;
-	};
-	template <typename T> struct ReturnDecay<T const&> {
-		typedef T type;
-	};
-	template <typename T> struct ReturnDecay<T&> {
-		typedef void type;
-	};
-	template <typename T> struct ReturnDecay<T&&> {
-		typedef T type;
-	};
-}
+template <typename T> struct FromLua {
+    typedef Lua::MetatableDescriptorImpl<T> metatable;
+    static T& transform(lua_State* s, int id) {
+        T* p = (T*)luaL_checkudata(s,id,metatable::name());
+        if(!p)
+            throw Lua::invalid_lua_arg(s,id,std::string("Argument ") + std::to_string(id) + " is not a " + metatable::luaname());
+        return *p;
+    }
+};
 
+template <typename T> struct LuaPush;
 
-template <typename ...> struct FromLua;
-template <typename> struct LuaPush;
 template <> struct LuaPush<void> { static int push(lua_State*, ...) { return 0; } };
 
 // Lua ---> C++ Function
@@ -73,46 +40,44 @@ template <> struct LuaPush<void> { static int push(lua_State*, ...) { return 0; 
 template <typename T> struct IntegerFromLua {
 	static T transform(lua_State* s, int id) {
 		if(!lua_isinteger(s,id))
-			throw Lua::invalid_lua_arg(s,id,"Argument %d is not an integer!");
+            throw Lua::invalid_lua_arg(s,id,"Argument " + std::to_string(id) + " is not an integer!");
 		int rv = 0;
 		lua_Integer i = lua_tointegerx(s,id,&rv);
 		if(!rv)
-			throw Lua::invalid_lua_arg(s,id,"Argument %d could not be converted to an integer!");
+            throw Lua::invalid_lua_arg(s,id,"Argument " + std::to_string(id) + " could not be converted to an integer!");
 		return static_cast<T>(i);
 	}
 };
-
 template <typename T> struct NumberFromLua {
 	static T transform(lua_State* s, int id) {
 		if(!lua_isnumber(s,id))
-			throw Lua::invalid_lua_arg(s,id,"Argument %d is not a number!");
+            throw Lua::invalid_lua_arg(s,id,"Argument " + std::to_string(id) + " is not a number!");
 		int rv = 0;
 		lua_Number i = lua_tonumberx(s,id,&rv);
 		if(!rv)
-			throw Lua::invalid_lua_arg(s,id,"Argument %d could not be converted to a number!");
+            throw Lua::invalid_lua_arg(s,id,"Argument " + std::to_string(id) + " could not be converted to a number!");
 		return static_cast<T>(i);
 	}
 };
-
 template <> struct FromLua<signed char> {
 	static signed char transform(lua_State* s, int id) {
 		if(!lua_isstring(s,id))
-			throw Lua::invalid_lua_arg(s,id, "Argument %d does not contain a character!");
+            throw Lua::invalid_lua_arg(s,id, "Argument " + std::to_string(id) + " does not contain a character!");
 		size_t size = 0;
 		char const* str= lua_tolstring(s,id,&size);
 		if(!str || size != 1)
-			throw Lua::invalid_lua_arg(s,id, "Argument %d does not contain a character!");
+            throw Lua::invalid_lua_arg(s,id, "Argument " + std::to_string(id) + " does not contain a character!");
 		return static_cast<signed char>(*str);
 	}
 };
 template <> struct FromLua<char> {
 	static char transform(lua_State* s, int id) {
 		if(!lua_isstring(s,id))
-			throw Lua::invalid_lua_arg(s,id, "Argument %d does not contain a character!");
+            throw Lua::invalid_lua_arg(s,id, "Argument " + std::to_string(id) + " does not contain a character!");
 		size_t size = 0;
 		char const* str= lua_tolstring(s,id,&size);
 		if(!str || size != 1)
-			throw Lua::invalid_lua_arg(s,id, "Argument %d does not contain a character!");
+            throw Lua::invalid_lua_arg(s,id, "Argument " + std::to_string(id) + " does not contain a character!");
 		return *str;
 	}
 };
@@ -134,22 +99,22 @@ template <> struct FromLua<long double> : public NumberFromLua<long double> {};
 template <> struct FromLua<char const*> {
 	static char const* transform(lua_State* s, int id) {
 		if(!lua_isstring(s,id))
-			throw Lua::invalid_lua_arg(s,id,"Argument %d is not a string!");
+            throw Lua::invalid_lua_arg(s,id,"Argument " + std::to_string(id) + " is not a string!");
 		size_t size = 0;
 		char const* str = lua_tolstring(s,id,&size);
 		if(!str)
-			throw Lua::invalid_lua_arg(s,id,"Argument %d is not a string!");
+            throw Lua::invalid_lua_arg(s,id,"Argument " + std::to_string(id) + " is not a string!");
 		return str;
 	}
 };
-template <> struct FromLua<std::string> {
+/*template <> struct FromLua<std::string> {
 	static std::string transform(lua_State* s, int id) {
 		if(!lua_isstring(s,id))
-			throw Lua::invalid_lua_arg(s,id,"Argument %d is not a string!");
+            throw Lua::invalid_lua_arg(s,id,"Argument " + std::to_string(id) + " is not a string!");
 		size_t size = 0;
 		char const* str = lua_tolstring(s,id,&size);
 		if(!str)
-			throw Lua::invalid_lua_arg(s,id,"Argument %d is not a string!");
+            throw Lua::invalid_lua_arg(s,id,"Argument " + std::to_string(id) + " is not a string!");
 		return std::string(str,size);
 	}
 };
@@ -179,7 +144,7 @@ template <typename T> struct FromLua<std::map<std::string,T>> {
 		}
 		return elem;
 	}
-};
+};*/
 
 // C++ Function ---> Lua
 template <typename T> struct IntegerToLua {
@@ -272,4 +237,5 @@ template <typename T> struct LuaPush<std::map<std::string,T>> {
 		return 1;
 	}
 };
+
 #endif // __LUAPP_TYPEEXT_H__

@@ -28,7 +28,7 @@ public:
 };
 
 // We now create a metatable descriptor for our object
-template <> struct MetatableDescriptor<MyClass> {
+template <> struct MetatableDescriptorImpl<MyClass> {
   // We provide a metatable name
   static char const* name() { return "myclass_mt"; }
   // We provide a table name, we will use this to construct our class from Lua code

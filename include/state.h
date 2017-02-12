@@ -28,7 +28,6 @@
 #define tagged(pops, pushes, errors)
 
 namespace Lua {
-	template <typename T> class ObjectWrapper;
 	typedef ::lua_Alloc lua_Alloc;
 	typedef ::lua_CFunction lua_CFunction;
 	typedef ::lua_Integer lua_Integer;
@@ -66,6 +65,7 @@ namespace Lua {
 	
 	class State {
 		std::shared_ptr<AutoState> m_state;
+        std::uint64_t m_lastMetatableIndex;
 		
 	protected:
 		State& force_close();
@@ -221,6 +221,17 @@ namespace Lua {
 		tagged(0,0,-)					char const* typename_aux(int);
 		tagged(0,0,-)					void unref(int, int);
 		tagged(0,1,e)					void where(int);
+
+		// Works with:
+		/* Bool
+		 * LightUserData
+		 * Number
+		 * String
+		 * Table
+		 * CFunction
+		 */
+        tagged(0,1,e)					void luapp_push(Variable const&);
+        tagged(0,1,e)					void luapp_push(nil_t const&);
 		
 		// Works with:
 		/* Bool
@@ -230,25 +241,23 @@ namespace Lua {
 		 * Table
 		 * CFunction
 		 */
-		tagged(0,1,e)					void Push(Variable const&);
-		tagged(0,1,e)					void Push(nil_t const&);
+        tagged(0,0,e)					Variable* luapp_read(int);
 		
-		// Works with:
-		/* Bool
-		 * LightUserData
-		 * Number
-		 * String
-		 * Table
-		 * CFunction
-		 */
-		tagged(0,0,e)					Variable* Read(int);
+        // Works with references
+        tagged(1,0,e)					Reference luapp_pop_reference(int table);
+        tagged(0,1,e)					void luapp_push_reference(Reference const&, int table);
+        tagged(0,0,-)					void luapp_destroy_reference(Reference const&, int table);
 		
-		tagged(1,0,e)					Reference PopReference(int table);
-		tagged(0,1,e)					void Push(Reference const&, int table);
-		tagged(0,0,-)					void DestroyReference(Reference const&, int table);
-		
-		// AddObject<std::string>("luapp_stdstring")
-		tagged(0,0,-)					template <typename T> void AddObject() { ObjectWrapper<T>::applyState(GetState()); }
+        // Required for most users
+        tagged(0,0,-)                   void luapp_register_metatables();
+        tagged(0,0,-)					template <typename T> void luapp_register_object() { MetatableManager<MetatableDescriptorImpl<T>>::Register(GetState()); }
+        tagged(0,1,-)                   int luapp_push_translated_function(std::function<int(lua_State*)> const& function);
+        tagged(0,0,-)            inline void luapp_add_translated_function(char const* name, std::function<int(lua_State*)> const& function) { luapp_push_translated_function(function); setglobal(name); }
+        tagged(0,1,-)                   template <typename T, typename ... Args> T* luapp_push_object(Args&& ... args) { return MetatableManager<MetatableDescriptorImpl<T>>::Construct(GetState(),std::forward<Args>(args)...); }
+        tagged(0,0,0)                   template <typename T> T* luapp_get_object(int arg) { return MetatableManager<MetatableDescriptorImpl<T>>::FromStack(GetState(),arg); }
+        tagged(0,0,e)                   template <typename T> T& luapp_require_object(int arg) { T* ptr = MetatableManager<MetatableDescriptorImpl<T>>::FromStack(GetState(),arg); if(!ptr) luaL_error(GetState(),"C++ / Lua Error: Stack item %d is not of type %s!",arg,MetatableDescriptorImpl<T>::name()); return *ptr; }
+        tagged(0,0,0)                   template <typename T> static T* luapp_get_object(lua_State* s, int arg) { return MetatableManager<MetatableDescriptorImpl<T>>::FromStack(s,arg); }
+        tagged(0,0,e)                   template <typename T> static T& luapp_require_object(lua_State* s, int arg) { T* ptr = MetatableManager<MetatableDescriptorImpl<T>>::FromStack(s,arg); if(!ptr) luaL_error(s,"C++ / Lua Error: Stack item %d is not of type %s!",arg,MetatableDescriptorImpl<T>::name()); return *ptr; }
 	};
 }
 

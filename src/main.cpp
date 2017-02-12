@@ -22,45 +22,42 @@ template <> struct MetatableDescriptor<std::string> {
 	static char const* name() { return "stdstring_mt"; }	// Actual Lua metatable name
 	static char const* luaname() { return "stdstring"; }	// Table name, to call the constructor from
 	static char const* constructor() { return "create"; }	// Constructor method name. To be used like "stdstring.create()"
-	static Lua::function_storage<std::string> metatable()	// Return a std::map<string, function> of class methods.
+    static void metatable(Lua::member_function_storage<std::string>& mt)
 	{
-		static Lua::function_storage<std::string> mt;		// Making this static: Performs better.
-		if(mt.empty()) {
-			// Populate the methods table:
-			// Erase the string's contents.
-			mt["clear"] = Lua::TransformClassCall(&std::string::clear);
-			
-			// Append a string. This function has multiple overloads, so we need to specify the one we want.
-			mt["append"] = Lua::TransformClassCall(Lua::resolve<std::string& (std::string::*) (char const*), &std::string::append>());
-			
-			// Let's make push_back an alias for append.
-			mt["push_back"] = mt["append"];
-			
-			// Return a character. Please note that C++ strings are zero-indexed.
-			// Also, we cannot return C++ references - they are converted to plain lua variables. You can't return a stdstring yet.
-			mt["at"] = Lua::TransformClassCall(Lua::resolve<std::string::const_reference (std::string::*)(std::string::size_type) const,&std::string::at>());
-			
-			// Display the string. This function shows you how a behind-the-scenes conversion looks like.
-			// The lua_State* will contain the function parameters plus two.
-			mt["display"] = [](std::string& v, lua_State*) -> int {
-				std::cout << "metatable 'display' called: " << v << std::endl;
-				return 0;
-			};
-		}
-		return mt;
+        mt["clear"] = Lua::Transform(&std::string::clear);
+        mt["append"] = Lua::Transform((std::string& (std::string::*)(char const*))&std::string::append);
+        mt["append_str"] = Lua::TransformSelf(
+            Lua::ToFnc(
+                [](std::string& self, std::string other) -> int {
+                    self += other;
+                    return 0;
+                }
+            )
+        );
+
+        mt["push_back"] = mt["append"];
+        mt["at"] = Lua::Transform((std::string::const_reference (std::string::*)(std::string::size_type) const)&std::string::at);
+        mt["display"] = std::function<int(std::string&, lua_State*)>([](std::string& v, lua_State*) -> int {
+            std::cout << "Metatable 'display' called. Value: " << v << std::endl;
+            return 0;
+        });
 	}
 };
 
 int main()
 {
 	Lua::State state = Lua::State::create();
-	state.AddObject<std::string>();
+    state.luapp_register_metatables();
+    state.luapp_register_object<std::string>();
 	
+    if(state.luapp_push_object<std::string>("reat!"))
+        state.setglobal("z");
 	state.loadstring(
 		"x = stdstring.create()\n"\
 		"x:append('hi guy')\n"\
 		"y = stdstring.create()\n"\
 		"y:append(x:at(3))\n"\
+        "y:append_str(z)\n"\
 		"y:display()"
 	);
 	state.call();
