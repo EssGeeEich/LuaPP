@@ -338,14 +338,14 @@ namespace Lua {
     template <typename T> struct LuaExplicitArguments;
     template <typename Class, typename RetVal, typename ... Args>
     struct LuaExplicitArguments<RetVal (Class::*)(Args...)> {
-        static constexpr int count(bool =false) { // True = this is bound
-            return 2;
+        static constexpr int count(bool x=false) { // True = this is bound
+            return x ? 1 : 2;
         }
     };
     template <typename Class, typename RetVal, typename ... Args>
     struct LuaExplicitArguments<RetVal (Class::*)(Args...) const> {
-        static constexpr int count(bool =false) { // True = this is bound
-            return 2;
+        static constexpr int count(bool x=false) { // True = this is bound
+            return x ? 1 : 2;
         }
     };
     template <typename RetVal, typename ... Args>
