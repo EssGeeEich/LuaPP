@@ -72,5 +72,8 @@ namespace Lua {
     {
         return f;
     }
+
+    struct nil_t {};
+    extern nil_t const nil;
 }
 #endif // UTIL_H

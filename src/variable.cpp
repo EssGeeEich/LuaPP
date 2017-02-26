@@ -15,8 +15,6 @@
 #include "variable.h"
 
 namespace Lua {
-	nil_t const nil;
-	
 	Variable::Variable(Type t) : m_type(t) {}
 	Variable::~Variable() {}
 	

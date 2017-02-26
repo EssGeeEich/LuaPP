@@ -14,8 +14,9 @@ HEADERS += \
 	$$PWD/include/reference.h \
 	$$PWD/include/state.h \
 	$$PWD/include/transform.h \
-	$$PWD/include/typeext.h \
 	$$PWD/include/variable.h \
-    $$PWD/include/util.h
+    $$PWD/include/util.h \
+    $$PWD/include/types.h \
+    $$PWD/include/type_parser.h
 	
 LIBS += -llua

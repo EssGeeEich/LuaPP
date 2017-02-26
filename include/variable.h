@@ -14,16 +14,12 @@
 
 #ifndef __LUAPP_VARIABLE_H__
 #define __LUAPP_VARIABLE_H__
-#include <lua.hpp>
-#include <string>
 #include <map>
 #include <memory>
+#include "util.h"
 #include "enums.h"
 
 namespace Lua {
-	struct nil_t {};
-	extern nil_t const nil;
-	
 	class Bool;
 	class LightUserData;
 	class Number;

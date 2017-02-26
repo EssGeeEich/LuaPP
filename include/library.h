@@ -71,14 +71,6 @@ namespace Lua {
     };
     template <typename T> using member_function_storage = std::map<std::string,ClassMemberFunctor<T>>;
 
-    //class FunctionFunctor {
-    //    std::function<int(lua_State*)> m_functor;
-    //public: // This also requires the default constructor.
-    //    FunctionFunctor(std::function<int(lua_State*)> f);
-    //    int operator() (lua_State* state) const;
-    //};
-    //typedef std::map<std::string,FunctionFunctor> function_storage;
-
     template <typename T>
     struct MetatableDescriptorImpl {
         static char const* name() { return MetatableDescriptor<T>::name(); }

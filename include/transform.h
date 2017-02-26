@@ -20,7 +20,7 @@
 #include <tuple>
 #include <lua.hpp>
 #include "util.h"
-#include "typeext.h"
+#include "type_parser.h"
 
 #define LUAPP_TRANSFORM_PARAMETER(firstID, Is) (firstID - ArgCount + 1 + Is - (sizeof...(BoundArgs)))
 namespace Lua {
@@ -140,6 +140,20 @@ namespace Lua {
     }
 
     namespace impl {
+        template <typename T> struct SingleArgReader {
+            static T Read(lua_State* state, int currentIndex) {
+                Lua::Arg<T> arg = Lua::TypeConverter<T>::Read(state,currentIndex);
+                if(!arg)
+                    throw Lua::invalid_lua_arg(state,currentIndex,std::string("Lua Error: Invalid argument #") + std::to_string(currentIndex) + "!");
+                return *arg;
+            }
+        };
+        template <typename T> struct SingleArgReader<Lua::Arg<T>> {
+            static Lua::Arg<T> Read(lua_State* state, int currentIndex) {
+                return Lua::TypeConverter<T>::Read(state,currentIndex);
+            }
+        };
+
         template <typename T> struct TupleLuaReader;
         template <> struct TupleLuaReader<std::tuple<>> {};
         template <typename T>
@@ -147,7 +161,7 @@ namespace Lua {
         {
             static std::tuple<T> Read(lua_State* state, int currentIndex)
             {
-                return std::make_tuple(FromLua<typename GenericDecay<T>::type>::transform(state,currentIndex));
+                return std::make_tuple(SingleArgReader<T>::Read(state,currentIndex));
             }
         };
         template <typename T, typename Y, typename ... Args>
@@ -156,18 +170,18 @@ namespace Lua {
             static std::tuple<T,Y,Args...> Read(lua_State* state, int currentIndex)
             {
                 return std::tuple_cat(
-                            std::make_tuple(FromLua<typename GenericDecay<T>::type>::transform(state,currentIndex)),
-                            TupleLuaReader<std::tuple<Y,Args...>>::Read(state,currentIndex + 1)
-                        );
+                    std::make_tuple(SingleArgReader<T>::Read(state,currentIndex)),
+                    TupleLuaReader<std::tuple<Y,Args...>>::Read(state, currentIndex+1)
+                );
             }
         };
 
         template <typename ... Args>
-        void ReadLuaTuple(std::tuple<Args...>& dest, lua_State* state, int currentIndex)
+        void ReadLuaTuple(std::tuple<Args...>& dest, lua_State* state, int currentIndex, int argc, int boundc)
         {
-             dest = TupleLuaReader<std::tuple<Args...>>::Read(state,currentIndex);
+             dest = TupleLuaReader<std::tuple<Args...>>::Read(state,currentIndex - argc + 1 + boundc);
         }
-        inline void ReadLuaTuple(std::tuple<>&, lua_State*, int){}
+        inline void ReadLuaTuple(std::tuple<>&, lua_State*, int, int, int){}
 
         template <typename T> struct TransformFunction;
 
@@ -182,11 +196,12 @@ namespace Lua {
             static int Call(Class& instance, ReturnValue (Class::* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<Args...>;
+                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
-                ReadLuaTuple(stt, state, firstID - ArgCount + 1 + (sizeof...(BoundArgs)));
-                return LuaPush<LuaReturnValue>::push(state,Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
+                ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
+                Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
+                return Lua::TypeConverter<LuaReturnValue>::PushCount;
             }
         };
         template <typename Class, typename ... Args>
@@ -197,10 +212,10 @@ namespace Lua {
             static int Call(Class& instance, void (Class::* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<Args...>;
+                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
-                ReadLuaTuple(stt, state, firstID - ArgCount + 1 + (sizeof...(BoundArgs)));
+                ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
                 Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt));
                 return 0;
             }
@@ -220,11 +235,12 @@ namespace Lua {
             static int Call(Class const& instance, ReturnValue (Class::* fptr)(Args...) const, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<Args...>;
+                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
-                ReadLuaTuple(stt, state, firstID - ArgCount + 1 + (sizeof...(BoundArgs)));
-                return LuaPush<LuaReturnValue>::push(state,Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
+                ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
+                Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
+                return Lua::TypeConverter<LuaReturnValue>::PushCount;
             }
         };
         template <typename Class, typename ... Args>
@@ -238,10 +254,10 @@ namespace Lua {
             static int Call(Class const& instance, void (Class::* fptr)(Args...) const, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<Args...>;
+                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
-                ReadLuaTuple(stt, state, firstID - ArgCount + 1 + (sizeof...(BoundArgs)));
+                ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
                 Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt));
                 return 0;
             }
@@ -258,11 +274,12 @@ namespace Lua {
             static int Call(ReturnValue (* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<Args...>;
+                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
-                ReadLuaTuple(stt, state, firstID - ArgCount + 1 + (sizeof...(BoundArgs)));
-                return LuaPush<LuaReturnValue>::push(state,Tuple::Call(fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
+                ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
+                Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
+                return Lua::TypeConverter<LuaReturnValue>::PushCount;
             }
         };
         template <typename ... Args>
@@ -273,10 +290,10 @@ namespace Lua {
             static int Call(void (* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<Args...>;
+                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
-                ReadLuaTuple(stt, state, firstID - ArgCount + 1 + (sizeof...(BoundArgs)));
+                ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
                 Tuple::Call(fptr, std::tuple_cat(std::make_tuple(bound...),stt));
                 return 0;
             }
@@ -292,11 +309,12 @@ namespace Lua {
             static int Call(std::function<ReturnValue(Args...)> const& fptr, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<Args...>;
+                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
-                ReadLuaTuple(stt, state, firstID - ArgCount + 1 + (sizeof...(BoundArgs)));
-                return LuaPush<LuaReturnValue>::push(state,Tuple::Call(fptr, std::tuple_cat(std::forward_as_tuple(bound...),stt)));
+                ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
+                Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(fptr, std::tuple_cat(std::forward_as_tuple(bound...),stt)));
+                return Lua::TypeConverter<LuaReturnValue>::PushCount;
             }
         };
         template <typename ... Args>
@@ -307,15 +325,41 @@ namespace Lua {
             static int Call(std::function<void(Args...)> const& fptr, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<Args...>;
+                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
-                ReadLuaTuple(stt, state, firstID - ArgCount + 1 + (sizeof...(BoundArgs)));
+                ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
                 Tuple::Call(fptr, std::tuple_cat(std::make_tuple(bound...),stt));
                 return 0;
             }
         };
     }
+    
+    template <typename T> struct LuaExplicitArguments;
+    template <typename Class, typename RetVal, typename ... Args>
+    struct LuaExplicitArguments<RetVal (Class::*)(Args...)> {
+        static constexpr int count(bool =false) { // True = this is bound
+            return 2;
+        }
+    };
+    template <typename Class, typename RetVal, typename ... Args>
+    struct LuaExplicitArguments<RetVal (Class::*)(Args...) const> {
+        static constexpr int count(bool =false) { // True = this is bound
+            return 2;
+        }
+    };
+    template <typename RetVal, typename ... Args>
+    struct LuaExplicitArguments<std::function<RetVal(Args...)>> {
+        static constexpr int count(bool =false) { // True = this is like a member function
+            return 1;
+        }
+    };
+    template <typename RetVal, typename ... Args>
+    struct LuaExplicitArguments<RetVal (*)(Args...)> {
+        static constexpr int count() { // Generic function
+            return 1;
+        }
+    };
 
     template <typename Class, typename RetVal, typename ... Args, typename ... BoundArgs>
     std::function<int(Class&, lua_State*)> static Transform(RetVal (Class::* fptr)(Args...), BoundArgs&& ... bound) {
@@ -323,9 +367,10 @@ namespace Lua {
             static_assert(sizeof...(Args) >= sizeof...(BoundArgs), "Lua Function Transform: Too many bound arguments!");
 
             constexpr size_t required_args = sizeof...(Args) - sizeof...(BoundArgs);
-            if(lua_gettop(state) < static_cast<int>(required_args))
+            int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (Class::*)(Args...)>::count();
+            if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_gettop(state)) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
@@ -342,9 +387,10 @@ namespace Lua {
             static_assert(sizeof...(Args) >= sizeof...(BoundArgs), "Lua Function Transform: Too many bound arguments!");
 
             constexpr size_t required_args = sizeof...(Args) - sizeof...(BoundArgs);
-            if(lua_gettop(state) < static_cast<int>(required_args))
+            int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (Class::*)(Args...) const>::count();
+            if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_gettop(state)) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
@@ -361,9 +407,10 @@ namespace Lua {
             static_assert(sizeof...(Args) >= sizeof...(BoundArgs), "Lua Function Transform: Too many bound arguments!");
 
             constexpr size_t required_args = sizeof...(Args) - sizeof...(BoundArgs);
-            if(lua_gettop(state) < static_cast<int>(required_args))
+            int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (*)(Args...)>::count();
+            if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_gettop(state)) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
@@ -380,9 +427,10 @@ namespace Lua {
             static_assert(sizeof...(Args) >= sizeof...(BoundArgs), "Lua Function Transform: Too many bound arguments!");
 
             constexpr size_t required_args = sizeof...(Args) - sizeof...(BoundArgs);
-            if(lua_gettop(state) < static_cast<int>(required_args))
+            int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (Class::*)(Args...)>::count(true);
+            if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_gettop(state)) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
@@ -399,9 +447,10 @@ namespace Lua {
             static_assert(sizeof...(Args) >= sizeof...(BoundArgs), "Lua Function Transform: Too many bound arguments!");
 
             constexpr size_t required_args = sizeof...(Args) - sizeof...(BoundArgs);
-            if(lua_gettop(state) < static_cast<int>(required_args))
+            int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (Class::*)(Args...) const>::count(true);
+            if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_gettop(state)) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
@@ -418,9 +467,10 @@ namespace Lua {
             static_assert(sizeof...(Args) >= sizeof...(BoundArgs), "Lua Function Transform: Too many bound arguments!");
 
             constexpr size_t required_args = sizeof...(Args) - sizeof...(BoundArgs);
-            if(lua_gettop(state) < static_cast<int>(required_args))
+            int lua_args = lua_gettop(state) - LuaExplicitArguments<std::function<RetVal(Args...)>>::count();
+            if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_gettop(state)) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
@@ -437,9 +487,10 @@ namespace Lua {
             static_assert(sizeof...(Args) >= sizeof...(BoundArgs), "Lua Function Transform: Too many bound arguments!");
 
             constexpr size_t required_args = sizeof...(Args) - sizeof...(BoundArgs);
-            if(lua_gettop(state) < static_cast<int>(required_args))
+            int lua_args = lua_gettop(state) - LuaExplicitArguments<std::function<RetVal(Class&,Args...)>>::count(true);
+            if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_gettop(state)) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
@@ -456,9 +507,10 @@ namespace Lua {
             static_assert(sizeof...(Args) >= sizeof...(BoundArgs), "Lua Function Transform: Too many bound arguments!");
 
             constexpr size_t required_args = sizeof...(Args) - sizeof...(BoundArgs);
-            if(lua_gettop(state) < static_cast<int>(required_args))
+            int lua_args = lua_gettop(state) - LuaExplicitArguments<std::function<RetVal(Class const&,Args...)>>::count();
+            if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_gettop(state)) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {

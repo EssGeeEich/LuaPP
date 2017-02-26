@@ -22,7 +22,7 @@
 #include "reference.h"
 #include "library.h"
 #include "transform.h"
-#include "typeext.h"
+#include "type_parser.h"
 
 // Documentation tag
 #define tagged(pops, pushes, errors)

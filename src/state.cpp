@@ -278,7 +278,7 @@ namespace Lua {
 			break;
 		case TP_NIL:
 			{
-				return new Nil();
+                return new Nil();
 			}
 		default:
 			break;

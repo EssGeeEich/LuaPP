@@ -14,52 +14,71 @@
 
 #include "state.h"
 #include <iostream>
+#include <cmath>
 
-// Create a metatable for std::string.
-// The destructor and constructor for this object are the default ones.
-// They need to be public.
-template <> struct MetatableDescriptor<std::string> {
-	static char const* name() { return "stdstring_mt"; }	// Actual Lua metatable name
-	static char const* luaname() { return "stdstring"; }	// Table name, to call the constructor from
-	static char const* constructor() { return "create"; }	// Constructor method name. To be used like "stdstring.create()"
-    static void metatable(Lua::member_function_storage<std::string>& mt)
-	{
-        mt["clear"] = Lua::Transform(&std::string::clear);
-        mt["append"] = Lua::Transform((std::string& (std::string::*)(char const*))&std::string::append);
-        mt["append_str"] = Lua::TransformSelf(
-            Lua::ToFnc(
-                [](std::string& self, std::string other) -> int {
-                    self += other;
-                    return 0;
-                }
-            )
-        );
+class TestCase {
+    std::string m_data;
+public:
+    // Optional
+    TestCase() {
+        std::cout << "TestCase constructed!" << std::endl;
+    }
 
-        mt["push_back"] = mt["append"];
-        mt["at"] = Lua::Transform((std::string::const_reference (std::string::*)(std::string::size_type) const)&std::string::at);
-        mt["display"] = std::function<int(std::string&, lua_State*)>([](std::string& v, lua_State*) -> int {
-            std::cout << "Metatable 'display' called. Value: " << v << std::endl;
-            return 0;
-        });
-	}
+    void SetText(std::string const& text) {
+        std::cout << "TestCase SetText: " << text << std::endl;
+        m_data = text;
+    }
+
+    void Display() {
+        std::cout << "TestCase Display: " << m_data << std::endl;
+    }
+    
+    void DisplayArguments(int Arg1, float Arg2, std::string const& Arg3) {
+        std::cout << "TestCase DisplayArguments." << std::endl
+                  << "Arg1: " << Arg1 << std::endl
+                  << "Arg2: " << Arg2 << std::endl
+                  << "Arg3: " << Arg3 << std::endl;
+    }
+    
+    void Const() const {
+        std::cout << "TestCase Const." << std::endl;
+    }
+};
+
+// Create a metatable for TestCase.
+// This object needs to have a public default constructor.
+// You can construct it with more arguments using luapp_push_object<TestCase>.
+template <> struct MetatableDescriptor<TestCase> {
+    static char const* name() { return "testcase_metatable"; }
+    static char const* luaname() { return "testcase"; }
+    static char const* constructor() { return "create"; }
+    
+    static void metatable(Lua::member_function_storage<TestCase>& mt)
+    {
+        mt["SetText"] = Lua::Transform(&TestCase::SetText);
+        mt["Display"] = Lua::Transform(&TestCase::Display);
+        mt["DisplayArgs"] = Lua::Transform(&TestCase::DisplayArguments);
+        mt["DisplayArgs_BoundArguments"] = Lua::Transform(&TestCase::DisplayArguments, 42, 3.14);
+        mt["Const"] = Lua::Transform(&TestCase::Const);
+    }
 };
 
 int main()
 {
 	Lua::State state = Lua::State::create();
     state.luapp_register_metatables();
-    state.luapp_register_object<std::string>();
+    state.luapp_register_object<TestCase>();
 	
-    if(state.luapp_push_object<std::string>("reat!"))
-        state.setglobal("z");
-	state.loadstring(
-		"x = stdstring.create()\n"\
-		"x:append('hi guy')\n"\
-		"y = stdstring.create()\n"\
-		"y:append(x:at(3))\n"\
-        "y:append_str(z)\n"\
-		"y:display()"
-	);
+    state.luapp_add_translated_function("rand", Lua::Transform(std::rand));
+    
+    state.loadstring(R"literal(
+    local TestCase = testcase.create();    -- See luaname() and constructor()
+    TestCase:SetText("Hello World!");
+    TestCase:Const();
+    TestCase:Display();
+    TestCase:DisplayArgs(rand(), 3.0 * 0.5, "Something something");
+    TestCase:DisplayArgs_BoundArguments("The first two arguments have been bound to 42 and 3.14.");
+    )literal");
 	state.call();
 	return 0;
 }
