@@ -129,7 +129,7 @@ namespace Lua {
 
     template <typename T> struct TypeConverter<Lua::Array<T>> {
         typedef typename std::enable_if< TypeConverter<T>::PushCount == 1,
-            Lua::Arg<Lua::Array<Lua::Arg<T>>>
+            Lua::Arg<Lua::Array<T>>
         >::type Arg;
         static Arg Read(lua_State* s, int id) {
             if(!lua_istable(s,id))
@@ -140,7 +140,10 @@ namespace Lua {
                 lua_pushinteger(s,i);
                 if(!lua_next(s,id))
                     break;
-                v.m_data.push_back(TypeConverter<T>::Read(s,lua_absindex(s,-1)));
+                Lua::Arg<T> argt = TypeConverter<T>::Read(s,lua_absindex(s,-1));
+                if(!argt)
+                    break;
+                v.m_data.push_back(*argt);
                 lua_pop(s,2);
             }
             return Arg::ToMove(std::move(v));
@@ -157,7 +160,7 @@ namespace Lua {
 
     template <typename T> struct TypeConverter<Lua::Map<T>> {
         typedef typename std::enable_if< TypeConverter<T>::PushCount == 1,
-            Lua::Arg<Lua::Map<Lua::Arg<T>>>
+            Lua::Arg<Lua::Map<T>>
         >::type Arg;
         static Arg Read(lua_State* s, int id) {
             if(!lua_istable(s,id))
@@ -168,9 +171,12 @@ namespace Lua {
                 TypeConverter<std::string>::Arg arg = TypeConverter<std::string>::Read(s,lua_absindex(s,-2));
                 if(!arg)
                     continue;
+                Lua::Arg<T> argt = TypeConverter<T>::Read(s,lua_absindex(s,-1));
+                if(!argt)
+                    continue;
                 m.m_data.insert(std::make_pair(
                     *arg,
-                    TypeConverter<T>::Read(s,lua_absindex(s,-1))
+                    *argt
                 ));
             }
             return m;
@@ -202,7 +208,7 @@ namespace Lua {
             template <typename T>
             void operator() (T&& v)
             {
-                TypeConverter<T>::Push(m_state,std::forward<T>(v));
+                TypeConverter<typename GenericDecay<T>::type>::Push(m_state,std::forward<T>(v));
             }
         };
 
@@ -210,14 +216,14 @@ namespace Lua {
 
         template <typename T>
         struct SizeCalculator<T> {
-            constexpr std::size_t calc()
+            static constexpr std::size_t calc()
             {
                 return TypeConverter<T>::PushCount;
             }
         };
         template <typename T, typename ... Args>
         struct SizeCalculator<T,Args...> {
-            constexpr std::size_t calc()
+            static constexpr std::size_t calc()
             {
                 return TypeConverter<T>::PushCount +
                         SizeCalculator<Args...>::calc();

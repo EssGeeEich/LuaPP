@@ -196,7 +196,7 @@ namespace Lua {
             static int Call(Class& instance, ReturnValue (Class::* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
+                using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
@@ -212,11 +212,11 @@ namespace Lua {
             static int Call(Class& instance, void (Class::* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
+                using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
-                Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt));
+                Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(std::forward<BoundArgs>(bound)...),stt));
                 return 0;
             }
         };
@@ -235,7 +235,7 @@ namespace Lua {
             static int Call(Class const& instance, ReturnValue (Class::* fptr)(Args...) const, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
+                using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
@@ -254,11 +254,11 @@ namespace Lua {
             static int Call(Class const& instance, void (Class::* fptr)(Args...) const, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
+                using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
-                Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt));
+                Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(std::forward<BoundArgs>(bound)...),stt));
                 return 0;
             }
         };
@@ -274,7 +274,7 @@ namespace Lua {
             static int Call(ReturnValue (* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
+                using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
@@ -290,11 +290,11 @@ namespace Lua {
             static int Call(void (* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
+                using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
-                Tuple::Call(fptr, std::tuple_cat(std::make_tuple(bound...),stt));
+                Tuple::Call(fptr, std::tuple_cat(std::make_tuple(std::forward<BoundArgs>(bound)...),stt));
                 return 0;
             }
         };
@@ -309,7 +309,7 @@ namespace Lua {
             static int Call(std::function<ReturnValue(Args...)> const& fptr, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
+                using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
@@ -325,11 +325,11 @@ namespace Lua {
             static int Call(std::function<void(Args...)> const& fptr, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
                 Caller::running_state = state;
-                using FullArgsType = std::tuple<typename GenericDecay<Args>::type...>;
+                using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
-                Tuple::Call(fptr, std::tuple_cat(std::make_tuple(bound...),stt));
+                Tuple::Call(fptr, std::tuple_cat(std::make_tuple(std::forward<BoundArgs>(bound)...),stt));
                 return 0;
             }
         };
@@ -443,7 +443,7 @@ namespace Lua {
 
     template <typename Class, typename RetVal, typename ... Args, typename ... BoundArgs>
     std::function<int(lua_State*)> static Transform(Class const& instance, RetVal (Class::* fptr)(Args...) const, BoundArgs&& ... bound) {
-        return [=](lua_State* state) -> int {
+        return [=, &instance](lua_State* state) -> int {
             static_assert(sizeof...(Args) >= sizeof...(BoundArgs), "Lua Function Transform: Too many bound arguments!");
 
             constexpr size_t required_args = sizeof...(Args) - sizeof...(BoundArgs);

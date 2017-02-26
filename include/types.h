@@ -11,9 +11,8 @@
 
 namespace Lua {
     template <typename ... Args>
-    class ReturnValues {
+    struct ReturnValues {
         std::tuple<Args...> m_data;
-    public:
         ReturnValues(Args&& ... args) : m_data(std::forward<Args>(args)...) {}
         ReturnValues(ReturnValues const&) =default;
         ReturnValues(ReturnValues&&) =default;

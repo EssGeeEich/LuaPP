@@ -53,6 +53,22 @@ namespace Lua {
     template <typename T> struct ReturnDecay<T&&> {
         typedef T type;
     };
+    
+    template <typename T> struct TupleDecay {
+        typedef T type;
+    };
+    template <typename T> struct TupleDecay<T*> {
+        typedef T* type;
+    };
+    template <typename T> struct TupleDecay<T const&> {
+        typedef T type;
+    };
+    template <typename T> struct TupleDecay<T&> {
+        typedef T& type;
+    };
+    template <typename T> struct TupleDecay<T&&> {
+        typedef T type;
+    };
 
     namespace Caller {
         // Currently, it's only being set in Lua::impl::TransformFunction.
