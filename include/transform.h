@@ -428,13 +428,13 @@ namespace Lua {
             int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (Class::*)(Args...)>::count();
             if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count!\nExpected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
                 return impl::TransformFunction<decltype(fptr)>::Call(instance, fptr, state, lua_gettop(state), bound ...);
             } catch(std::exception& e) {
-                return luaL_error(state,"C++ Exception Thrown: %s",e.what());
+                return luaL_error(state,"C++ Exception Thrown.\n%s",e.what());
             }
         };
     }
@@ -448,13 +448,13 @@ namespace Lua {
             int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (Class::*)(Args...) const>::count();
             if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count!\nExpected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
                 return impl::TransformFunction<decltype(fptr)>::Call(instance, fptr, state, lua_gettop(state), bound...);
             } catch(std::exception& e) {
-                return luaL_error(state,"C++ Exception Thrown: %s",e.what());
+                return luaL_error(state,"C++ Exception Thrown.\n%s",e.what());
             }
         };
     }
@@ -468,13 +468,13 @@ namespace Lua {
             int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (*)(Args...)>::count();
             if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count!\nExpected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
                 return impl::TransformFunction<decltype(fptr)>::Call(fptr, state, lua_gettop(state), bound...);
             } catch(std::exception& e) {
-                return luaL_error(state,"C++ Exception Thrown: %s",e.what());
+                return luaL_error(state,"C++ Exception Thrown.\n%s",e.what());
             }
         };
     }
@@ -488,13 +488,13 @@ namespace Lua {
             int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (Class::*)(Args...)>::count(true);
             if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count!\nExpected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
                 return impl::TransformFunction<decltype(fptr)>::Call(instance, fptr, state, lua_gettop(state), bound...);
             } catch(std::exception& e) {
-                return luaL_error(state,"C++ Exception Thrown: %s",e.what());
+                return luaL_error(state,"C++ Exception Thrown.\n%s",e.what());
             }
         };
     }
@@ -508,13 +508,13 @@ namespace Lua {
             int lua_args = lua_gettop(state) - LuaExplicitArguments<RetVal (Class::*)(Args...) const>::count(true);
             if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count!\nExpected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
                 return impl::TransformFunction<decltype(fptr)>::Call(instance, fptr, state, lua_gettop(state), bound...);
             } catch(std::exception& e) {
-                return luaL_error(state,"C++ Exception Thrown: %s",e.what());
+                return luaL_error(state,"C++ Exception Thrown.\n%s",e.what());
             }
         };
     }
@@ -528,13 +528,13 @@ namespace Lua {
             int lua_args = lua_gettop(state) - LuaExplicitArguments<std::function<RetVal(Args...)>>::count();
             if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count!\nExpected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
                 return impl::TransformFunction<std::function<RetVal(Args...)>>::Call(func, state, lua_gettop(state), bound...);
             } catch(std::exception& e) {
-                return luaL_error(state,"C++ Exception Thrown: %s",e.what());
+                return luaL_error(state,"C++ Exception Thrown.\n%s",e.what());
             }
         };
     }
@@ -548,13 +548,13 @@ namespace Lua {
             int lua_args = lua_gettop(state) - LuaExplicitArguments<std::function<RetVal(Class&,Args...)>>::count(true);
             if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count!\nExpected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
                 return impl::TransformFunction<std::function<RetVal(Class&,Args...)>>::Call(func, state, lua_gettop(state), instance, bound...);
             } catch(std::exception& e) {
-                return luaL_error(state,"C++ Exception Thrown: %s",e.what());
+                return luaL_error(state,"C++ Exception Thrown.\n%s",e.what());
             }
         };
     }
@@ -568,13 +568,13 @@ namespace Lua {
             int lua_args = lua_gettop(state) - LuaExplicitArguments<std::function<RetVal(Class const&,Args...)>>::count();
             if(lua_args != static_cast<int>(required_args))
             {
-                return luaL_error(state,(std::string("C++ Method: Invalid argument count! Expected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
+                return luaL_error(state,(std::string("C++ Method: Invalid argument count!\nExpected: ") + std::to_string(required_args) + (", Given: ") + std::to_string(lua_args) + "!").c_str());
             }
 
             try {
                 return impl::TransformFunction<std::function<RetVal(Class const&,Args...)>>::Call(func, state, lua_gettop(state), instance, bound...);
             } catch(std::exception& e) {
-                return luaL_error(state,"C++ Exception Thrown: %s",e.what());
+                return luaL_error(state,"C++ Exception Thrown.\n%s",e.what());
             }
         };
     }
