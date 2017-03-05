@@ -33,6 +33,10 @@ namespace Lua {
             static void Push(lua_State* s, T const& v) {
                 lua_pushinteger(s,v);
             }
+            static std::string Name() {
+                return "integer";
+            }
+
             enum { PushCount = 1 };
         };
         template <typename T> struct NumberConverter {
@@ -49,6 +53,10 @@ namespace Lua {
             static void Push(lua_State* s, T const& v) {
                 lua_pushnumber(s,v);
             }
+            static std::string Name() {
+                return "number";
+            }
+
             enum { PushCount = 1 };
         };
         template <int... Is> struct sequence {};
@@ -80,6 +88,10 @@ namespace Lua {
 
             return Arg::ToReference(*p);
         }
+        static std::string Name() {
+            return metatable::name();
+        }
+
         // You need references to push something of this type.
         // static void Write(lua_State* state, T const& data) {}
     };
@@ -99,6 +111,10 @@ namespace Lua {
         static void Push(lua_State* s, std::string const& v) {
             lua_pushlstring(s,v.c_str(),v.size());
         }
+        static std::string Name() {
+            return "string";
+        }
+
         enum { PushCount = 1 };
     };
 
@@ -111,6 +127,10 @@ namespace Lua {
         static void Push(lua_State* s, bool v) {
             lua_pushboolean(s,v ? 1 : 0);
         }
+        static std::string Name() {
+            return "boolean";
+        }
+
         enum { PushCount = 1 };
     };
 
@@ -126,7 +146,7 @@ namespace Lua {
     template <> struct TypeConverter<float> : public impl::NumberConverter<float>{};
     template <> struct TypeConverter<double> : public impl::NumberConverter<double>{};
     template <> struct TypeConverter<long double> : public impl::NumberConverter<long double>{};
-
+    
     template <typename T> struct TypeConverter<Lua::Array<T>> {
         typedef typename std::enable_if< TypeConverter<T>::PushCount == 1,
             Lua::Arg<Lua::Array<T>>
@@ -155,6 +175,10 @@ namespace Lua {
                 lua_rawseti(s,-2,i+1);
             }
         }
+        static std::string Name() {
+            return TypeConverter<T>::Name() + " array";
+        }
+
         enum { PushCount = 1 };
     };
 
@@ -190,6 +214,10 @@ namespace Lua {
                 lua_settable(s,-3);
             }
         }
+        static std::string Name() {
+            return TypeConverter<T>::Name() + " table";
+        }
+
         enum { PushCount = 1 };
     };
 

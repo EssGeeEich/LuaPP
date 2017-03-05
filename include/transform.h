@@ -141,15 +141,72 @@ namespace Lua {
 
     namespace impl {
         template <typename T> struct SingleArgReader {
-            static T Read(lua_State* state, int currentIndex) {
+            static T Read(lua_State* state, int currentIndex, int startArg) {
                 Lua::Arg<T> arg = Lua::TypeConverter<T>::Read(state,currentIndex);
                 if(!arg)
-                    throw Lua::invalid_lua_arg(state,currentIndex,std::string("Lua Error: Invalid argument #") + std::to_string(currentIndex) + "!");
+                {
+                    std::string errorMsg = "bad argument #";
+                    errorMsg += std::to_string(currentIndex - startArg + 1);
+                    errorMsg += " to 'CppFunc' (";
+                    errorMsg += Lua::TypeConverter<T>::Name();
+                    errorMsg += " expected, got ";
+                    switch(lua_type(state,currentIndex))
+                    {
+                    case LUA_TNIL:
+                        errorMsg += "nil";
+                        break;
+                    case LUA_TNUMBER:
+                        errorMsg += "number";
+                        break;
+                    case LUA_TBOOLEAN:
+                        errorMsg += "boolean";
+                        break;
+                    case LUA_TSTRING:
+                        errorMsg += "string";
+                        break;
+                    case LUA_TTABLE:
+                        errorMsg += "table";
+                        break;
+                    case LUA_TFUNCTION:
+                        errorMsg += "function";
+                        break;
+                    case LUA_TUSERDATA:
+                        {
+                            if(!lua_getmetatable(state,currentIndex))
+                            {
+                                errorMsg += "userdata";
+                            }
+                            else
+                            {
+                                lua_getfield(state,-1,"__name");
+                                char const* text = lua_tostring(state,-1);
+                                if(text)
+                                    errorMsg += text;
+                                else
+                                    errorMsg += "userdata";
+                                lua_pop(state,2);
+                            }
+                        }
+                        break;
+                    case LUA_TTHREAD:
+                        errorMsg += "thread";
+                        break;
+                    case LUA_TLIGHTUSERDATA:
+                        errorMsg += "luserdata";
+                        break;
+                    default:
+                        errorMsg += "unknown";
+                        break;
+                    }
+                    errorMsg += ")";
+
+                    throw Lua::invalid_lua_arg(state,currentIndex,errorMsg);
+                }
                 return *arg;
             }
         };
         template <typename T> struct SingleArgReader<Lua::Arg<T>> {
-            static Lua::Arg<T> Read(lua_State* state, int currentIndex) {
+            static Lua::Arg<T> Read(lua_State* state, int currentIndex, int) {
                 return Lua::TypeConverter<T>::Read(state,currentIndex);
             }
         };
@@ -159,19 +216,19 @@ namespace Lua {
         template <typename T>
         struct TupleLuaReader<std::tuple<T>>
         {
-            static std::tuple<T> Read(lua_State* state, int currentIndex)
+            static std::tuple<T> Read(lua_State* state, int currentIndex, int startArg)
             {
-                return std::make_tuple(SingleArgReader<T>::Read(state,currentIndex));
+                return std::make_tuple(SingleArgReader<T>::Read(state,currentIndex,startArg));
             }
         };
         template <typename T, typename Y, typename ... Args>
         struct TupleLuaReader<std::tuple<T,Y,Args...>>
         {
-            static std::tuple<T,Y,Args...> Read(lua_State* state, int currentIndex)
+            static std::tuple<T,Y,Args...> Read(lua_State* state, int currentIndex, int startArg)
             {
                 return std::tuple_cat(
-                    std::make_tuple(SingleArgReader<T>::Read(state,currentIndex)),
-                    TupleLuaReader<std::tuple<Y,Args...>>::Read(state, currentIndex+1)
+                    std::make_tuple(SingleArgReader<T>::Read(state,currentIndex,startArg)),
+                    TupleLuaReader<std::tuple<Y,Args...>>::Read(state, currentIndex+1,startArg)
                 );
             }
         };
@@ -179,7 +236,8 @@ namespace Lua {
         template <typename ... Args>
         void ReadLuaTuple(std::tuple<Args...>& dest, lua_State* state, int currentIndex, int argc, int boundc)
         {
-             dest = TupleLuaReader<std::tuple<Args...>>::Read(state,currentIndex - argc + 1 + boundc);
+            int startArg = currentIndex - argc + 1 + boundc;
+            dest = TupleLuaReader<std::tuple<Args...>>::Read(state,startArg,startArg);
         }
         inline void ReadLuaTuple(std::tuple<>&, lua_State*, int, int, int){}
 
