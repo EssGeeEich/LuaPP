@@ -22,13 +22,23 @@ namespace Lua {
         template <typename T> struct IntegerConverter {
             typedef typename std::enable_if<std::is_integral<T>::value, Lua::Arg<T> >::type Arg;
             static Arg Read(lua_State* s, int id) {
-                if(!lua_isinteger(s,id))
-                    return Arg::Nil();
-                int rv = 0;
-                lua_Integer i = lua_tointegerx(s,id,&rv);
-                if(!rv)
-                    return Arg::Nil();
-                return Arg::ToCopy(i);
+                if(lua_isinteger(s,id))
+                {
+                    int rv = 0;
+                    lua_Integer i = lua_tointegerx(s,id,&rv);
+                    if(!rv)
+                        return Arg::Nil();
+                    return Arg::ToCopy(i);
+                }
+                else if(lua_isnumber(s,id))
+                {
+                    int rv = 0;
+                    lua_Number i = lua_tonumberx(s,id,&rv);
+                    if(!rv)
+                        return Arg::Nil();
+                    return Arg::ToCopy(static_cast<lua_Integer>(i));
+                }
+                return Arg::Nil();
             }
             static void Push(lua_State* s, T const& v) {
                 lua_pushinteger(s,v);
@@ -42,13 +52,23 @@ namespace Lua {
         template <typename T> struct NumberConverter {
             typedef typename std::enable_if<std::is_floating_point<T>::value, Lua::Arg<T> >::type Arg;
             static Arg Read(lua_State* s, int id) {
-                if(!lua_isnumber(s,id))
-                    return Arg::Nil();
-                int rv = 0;
-                lua_Number i = lua_tonumberx(s,id,&rv);
-                if(!rv)
-                    return Arg::Nil();
-                return Arg::ToCopy(i);
+                if(lua_isnumber(s,id))
+                {
+                    int rv = 0;
+                    lua_Number i = lua_tonumberx(s,id,&rv);
+                    if(!rv)
+                        return Arg::Nil();
+                    return Arg::ToCopy(i);
+                }
+                else if(lua_isinteger(s,id))
+                {
+                    int rv = 0;
+                    lua_Integer i = lua_tointegerx(s,id,&rv);
+                    if(!rv)
+                        return Arg::Nil();
+                    return Arg::ToCopy(static_cast<lua_Number>(i));
+                }
+                return Arg::Nil();
             }
             static void Push(lua_State* s, T const& v) {
                 lua_pushnumber(s,v);
