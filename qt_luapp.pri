@@ -17,6 +17,7 @@ HEADERS += \
 	$$PWD/include/variable.h \
     $$PWD/include/util.h \
     $$PWD/include/types.h \
-    $$PWD/include/type_parser.h
+    $$PWD/include/type_parser.h \
+    $$PWD/include/fwd.h
 	
 LIBS += -llua

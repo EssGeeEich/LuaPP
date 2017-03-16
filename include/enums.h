@@ -63,5 +63,25 @@ namespace Lua {
 		GC_SETSTEPMUL = LUA_GCSETSTEPMUL,
 		GC_ISRUNNING = LUA_GCISRUNNING
 	};
+    
+    enum {
+        MTD_NO_ARGS         =2,
+        MTD_ONE_ARG           ,
+        MTD_TWO_ARGS          ,
+        MTD_THREE_ARGS        ,
+        MTD_FOUR_ARGS         ,
+        MTD_FIVE_ARGS         ,
+        MTD_SIX_ARGS          ,
+        MTD_SEVEN_ARGS        ,
+        MTD_EIGHT_ARGS        ,
+        MTD_FIRST_ARG       =3,
+        MTD_SECOND_ARG        ,
+        MTD_THIRD_ARG         ,
+        MTD_FOURTH_ARG        ,
+        MTD_FIFTH_ARG         ,
+        MTD_SIXTH_ARG         ,
+        MTD_SEVENTH_ARG       ,
+        MTD_EIGHTH_ARG
+    };
 }
 #endif // __LUAPP_ENUMS_H__

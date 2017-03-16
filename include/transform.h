@@ -258,8 +258,7 @@ namespace Lua {
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
-                Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
-                return Lua::TypeConverter<LuaReturnValue>::PushCount;
+                return Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
             }
         };
         template <typename Class, typename ... Args>
@@ -297,8 +296,7 @@ namespace Lua {
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
-                Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
-                return Lua::TypeConverter<LuaReturnValue>::PushCount;
+                return Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(instance, fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
             }
         };
         template <typename Class, typename ... Args>
@@ -336,8 +334,7 @@ namespace Lua {
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
-                Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
-                return Lua::TypeConverter<LuaReturnValue>::PushCount;
+                return Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(fptr, std::tuple_cat(std::make_tuple(bound...),stt)));
             }
         };
         template <typename ... Args>
@@ -371,8 +368,7 @@ namespace Lua {
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
                 ReadLuaTuple(stt, state, firstID, ArgCount, sizeof...(BoundArgs));
-                Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(fptr, std::tuple_cat(std::forward_as_tuple(bound...),stt)));
-                return Lua::TypeConverter<LuaReturnValue>::PushCount;
+                return Lua::TypeConverter<LuaReturnValue>::Push(state, Tuple::Call(fptr, std::tuple_cat(std::forward_as_tuple(bound...),stt)));
             }
         };
         template <typename ... Args>

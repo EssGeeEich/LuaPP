@@ -16,10 +16,16 @@
 #include <utility>
 
 namespace Lua {
-	AutoState::AutoState(lua_State* state) : m_state(state) {}
-	AutoState::~AutoState() { if(m_state) lua_close(m_state); }
+	AutoState::AutoState(lua_State* state, bool del) : m_state(state), m_del(del) {}
+	AutoState::~AutoState() { if(m_state && m_del) lua_close(m_state); }
 	lua_State* AutoState::get() const { return m_state; }
 	
+    State State::use_existing_state(lua_State* s) {
+        State st;
+        st.m_state = std::shared_ptr<AutoState>(new AutoState(s,false));
+        return st;
+    }
+
     State State::create() {
         State s;
         s.m_state = std::shared_ptr<AutoState>(new AutoState(luaL_newstate()));

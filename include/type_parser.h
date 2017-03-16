@@ -14,10 +14,11 @@
 
 #ifndef __LUAPP_TYPEEXT_H__
 #define __LUAPP_TYPEEXT_H__
+#include "fwd.h"
 #include "types.h"
+#include "state.h"
 
 namespace Lua {
-
     namespace impl {
         template <typename T> struct IntegerConverter {
             typedef typename std::enable_if<std::is_integral<T>::value, Lua::Arg<T> >::type Arg;
@@ -40,14 +41,13 @@ namespace Lua {
                 }
                 return Arg::Nil();
             }
-            static void Push(lua_State* s, T const& v) {
+            static int Push(lua_State* s, T const& v) {
                 lua_pushinteger(s,v);
+                return 1;
             }
             static std::string Name() {
                 return "integer";
             }
-
-            enum { PushCount = 1 };
         };
         template <typename T> struct NumberConverter {
             typedef typename std::enable_if<std::is_floating_point<T>::value, Lua::Arg<T> >::type Arg;
@@ -70,31 +70,14 @@ namespace Lua {
                 }
                 return Arg::Nil();
             }
-            static void Push(lua_State* s, T const& v) {
+            static int Push(lua_State* s, T const& v) {
                 lua_pushnumber(s,v);
+                return 1;
             }
             static std::string Name() {
                 return "number";
             }
-
-            enum { PushCount = 1 };
         };
-        template <int... Is> struct sequence {};
-        template <int n, int ... Is> struct make_sequence : make_sequence<n-1,n-1,Is...> {};
-        template <int ... Is> struct make_sequence<0, Is...> : sequence<Is...> {};
-
-        template <typename T, typename F, int ... Is>
-        void for_each_impl(T&& t, F f, sequence<Is...>)
-        {
-            auto l = { (f(std::get<Is>(t)),0)... };
-            (void)l;
-        }
-
-        template <typename ... Ts, typename F>
-        void for_each_in_tuple(std::tuple<Ts...> const& t, F f)
-        {
-            for_each_impl(t, f, make_sequence<sizeof...(Ts)>());
-        }
     }
 
     // For classes with a metatype
@@ -111,11 +94,21 @@ namespace Lua {
         static std::string Name() {
             return metatable::name();
         }
-
-        // You need references to push something of this type.
-        // static void Write(lua_State* state, T const& data) {}
+        template <typename U>
+        static int Push(lua_State* s, U&& v) {
+            typename GenericDecay<T>::type* p = nullptr;
+            typename GenericDecay<U>::type* r = p;
+            p = r; (void)p; (void)r;
+            
+            Lua::State state = Lua::State::use_existing_state(s);
+            state.luapp_push_object<T>(std::forward<U>(v));
+            return 1;
+        }
     };
 
+    // void
+    template <> struct TypeConverter<void> {};
+    
     // std::string
     template <> struct TypeConverter<std::string> {
         typedef Lua::Arg<std::string> Arg;
@@ -128,14 +121,13 @@ namespace Lua {
                 return Arg::Nil();
             return Arg::ToMove(std::string(str,size));
         }
-        static void Push(lua_State* s, std::string const& v) {
+        static int Push(lua_State* s, std::string const& v) {
             lua_pushlstring(s,v.c_str(),v.size());
+            return 1;
         }
         static std::string Name() {
             return "string";
         }
-
-        enum { PushCount = 1 };
     };
 
     template <> struct TypeConverter<bool> {
@@ -144,14 +136,13 @@ namespace Lua {
             bool v = lua_toboolean(s,id) != 0;
             return Arg::ToCopy(v);
         }
-        static void Push(lua_State* s, bool v) {
+        static int Push(lua_State* s, bool v) {
             lua_pushboolean(s,v ? 1 : 0);
+            return 1;
         }
         static std::string Name() {
             return "boolean";
         }
-
-        enum { PushCount = 1 };
     };
 
     template <> struct TypeConverter<unsigned short> : public impl::IntegerConverter<unsigned short>{};
@@ -168,9 +159,7 @@ namespace Lua {
     template <> struct TypeConverter<long double> : public impl::NumberConverter<long double>{};
     
     template <typename T> struct TypeConverter<Lua::Array<T>> {
-        typedef typename std::enable_if< TypeConverter<T>::PushCount == 1,
-            Lua::Arg<Lua::Array<T>>
-        >::type Arg;
+        typedef Lua::Arg< Lua::Array<T> > Arg;
         static Arg Read(lua_State* s, int id) {
             if(!lua_istable(s,id))
                 return Arg::Nil();
@@ -188,24 +177,26 @@ namespace Lua {
             }
             return Arg::ToMove(std::move(v));
         }
-        static void Push(lua_State* s, Lua::Array<T> const& v) {
+        static int Push(lua_State* s, Lua::Array<T> const& v) {
+            int top = lua_gettop(s);
             lua_createtable(s,v.m_data.size(),0);
             for(std::size_t i = 0; i < v.m_data.size(); ++i) {
-                TypeConverter<T>::Push(s,v[i]);
+                if(TypeConverter<T>::Push(s,v.m_data[i]) != 1)
+                {
+                    lua_settop(s,top);
+                    throw lua_exception("Lua::Array Push: An argument is taking multiple spots in the stack.");
+                }
                 lua_rawseti(s,-2,i+1);
             }
+            return 1;
         }
         static std::string Name() {
             return TypeConverter<T>::Name() + " array";
         }
-
-        enum { PushCount = 1 };
     };
 
     template <typename T> struct TypeConverter<Lua::Map<T>> {
-        typedef typename std::enable_if< TypeConverter<T>::PushCount == 1,
-            Lua::Arg<Lua::Map<T>>
-        >::type Arg;
+        typedef Lua::Arg<Lua::Map<T>> Arg;
         static Arg Read(lua_State* s, int id) {
             if(!lua_istable(s,id))
                 return Arg::Nil();
@@ -225,7 +216,7 @@ namespace Lua {
             }
             return m;
         }
-        static void Push(lua_State* s, Lua::Map<T> const& v) {
+        static int Push(lua_State* s, Lua::Map<T> const& v) {
             lua_createtable(s,0,v.m_data.size());
             for(auto it = v.m_data.begin(); it != v.m_data.end(); ++it)
             {
@@ -233,64 +224,17 @@ namespace Lua {
                 TypeConverter<T>::Push(s, it->second);
                 lua_settable(s,-3);
             }
+            return 1;
         }
         static std::string Name() {
             return TypeConverter<T>::Name() + " table";
         }
-
-        enum { PushCount = 1 };
     };
-
-    template <> struct TypeConverter<Lua::ReturnValues<>> {
-        static void Push(lua_State*, Lua::ReturnValues<> const&) {}
-        enum { PushCount = 0 };
-    };
-
-    namespace impl {
-        class ItemPusher {
-            lua_State* m_state;
-        public:
-            ItemPusher(lua_State* state)
-                : m_state(state) {}
-
-            template <typename T>
-            void operator() (T&& v)
-            {
-                TypeConverter<typename GenericDecay<T>::type>::Push(m_state,std::forward<T>(v));
-            }
-        };
-
-        template <typename ...> struct SizeCalculator;
-
-        template <typename T>
-        struct SizeCalculator<T> {
-            static constexpr std::size_t calc()
-            {
-                return TypeConverter<T>::PushCount;
-            }
-        };
-        template <typename T, typename ... Args>
-        struct SizeCalculator<T,Args...> {
-            static constexpr std::size_t calc()
-            {
-                return TypeConverter<T>::PushCount +
-                        SizeCalculator<Args...>::calc();
-            }
-        };
-        template <>
-        struct SizeCalculator<> {
-            constexpr std::size_t calc() { return 0; }
-        };
-    }
-    template <typename T, typename ... Args> struct TypeConverter<Lua::ReturnValues<T,Args...>> {
-        static void Push(lua_State* s, Lua::ReturnValues<T,Args...> const& args) {
-            impl::ItemPusher ip(s);
-            impl::for_each_in_tuple(args.m_data, ip);
+    
+    template <> struct TypeConverter<Lua::ReturnValues> {
+        static int Push(lua_State* s, Lua::ReturnValues const& args) {
+            return args.push(s);
         }
-
-        enum {
-            PushCount = impl::SizeCalculator<T,Args...>::calc()
-        };
     };
 }
 

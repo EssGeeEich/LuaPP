@@ -3,25 +3,189 @@
 #include <lua.hpp>
 #include <string>
 #include <vector>
+#include <functional>
 #include <map>
 #include <memory>
 #include <type_traits>
+#include <cstring>
+#include "fwd.h"
 #include "library.h"
 #include "util.h"
 
 namespace Lua {
-    template <typename ... Args>
-    struct ReturnValues {
-        std::tuple<Args...> m_data;
-        ReturnValues(Args&& ... args) : m_data(std::forward<Args>(args)...) {}
-        ReturnValues(ReturnValues const&) =default;
-        ReturnValues(ReturnValues&&) =default;
-        ReturnValues& operator= (ReturnValues const&) =default;
-        ReturnValues& operator= (ReturnValues&&) =default;
+    template <typename T>
+    class Optional {
+        alignas(T) unsigned char m_data[sizeof(T)];
+        bool m_initialized;
+        
+        T* _force_get_ptr() {
+            return reinterpret_cast<T*>(m_data);
+        }
+        T const* _force_get_ptr() const {
+            return reinterpret_cast<T const*>(m_data);
+        }
+        
+        void set_initialized(bool v) {
+            if(v == m_initialized)
+                return;
+            if(v)
+            {
+                new (_force_get_ptr()) T();
+            }
+        }
+
+    public:
+        ~Optional() { release(); }
+        Optional() : m_initialized(false) {}
+        Optional(Optional const& o) : m_initialized(false) {
+            initialize(o);
+        }
+        Optional(T const& o) : m_initialized(false) {
+            initialize(o);
+        }
+        Optional& operator= (T const& o) {
+            initialize(o);
+            return *this;
+        }
+        Optional(Optional&& o) : m_initialized(false) {
+            if(o.m_initialized)
+            {
+                std::memcpy(m_data,o.m_data,sizeof(m_data));
+                m_initialized = true;
+                o.m_initialized = false;
+            }
+        }
+        Optional& operator= (Optional const& o) {
+            initialize(o);
+            return *this;
+        }
+        Optional& operator= (Optional&& o) {
+            release();
+            if(o.m_initialized)
+            {
+                std::memcpy(m_data,o.m_data,sizeof(m_data));
+                m_initialized = true;
+                o.m_initialized = false;
+            }
+            return *this;
+        }
+        
+        bool operator== (Optional const& o) const {
+            if(m_initialized && o.m_initialized)
+            {
+                return (*get()) == (*o.get());
+            }
+            return m_initialized == o.m_initialized;
+        }
+        bool operator== (T const& o) const {
+            if(!m_initialized)
+                return false;
+            return (*get()) == o;
+        }
+        
+        bool operator!= (Optional const& o) const {
+            return !(*this == o);
+        }
+        bool operator!= (T const& o) const {
+            if(!m_initialized)
+                return false;
+            return (*get()) != o;
+        }
+        
+        T* get() {
+            return m_initialized ? _force_get_ptr() : nullptr;
+        }
+        T const* get() const {
+            return m_initialized ? _force_get_ptr() : nullptr;
+        }
+        
+        template <typename ... Args>
+        void initialize(Args&& ... args) {
+            release();
+            new (_force_get_ptr()) T(std::forward<Args>(args)...);
+            m_initialized = true;
+        }
+        
+        void release() {
+            if(m_initialized)
+            {
+                _force_get_ptr()->~T();
+                m_initialized = false;
+            }
+        }
     };
+    
+    namespace impl {
+        template <int... Is> struct sequence {};
+        template <int n, int ... Is> struct make_sequence : make_sequence<n-1,n-1,Is...> {};
+        template <int ... Is> struct make_sequence<0, Is...> : sequence<Is...> {};
+    
+        template <typename T, typename F, int ... Is>
+        void for_each_impl(T&& t, F& f, sequence<Is...>)
+        {
+            auto l = { (f(std::get<Is>(t)),0)... };
+            (void)l;
+        }
+    
+        template <typename ... Ts, typename F>
+        void for_each_in_tuple(std::tuple<Ts...>& t, F& f)
+        {
+            for_each_impl(t, f, make_sequence<sizeof...(Ts)>());
+        }
+        
+        class RvPusher {
+            lua_State* m_state;
+            int m_count;
+        public:
+            RvPusher(lua_State* state)
+                : m_state(state), m_count(0) {}
+            
+            int count() const { return m_count; }
+            
+            template <typename T>
+            void operator() (T&& v)
+            {
+                m_count += TypeConverter<typename GenericDecay<T>::type>::Push(m_state, std::forward<T>(v));
+            }
+        };
+    }
+    
+    class ReturnValues {
+        std::function<int(lua_State*)> m_fn;
+        
+    public:
+        ReturnValues() =default;
+        ReturnValues(ReturnValues const&) =default;
+        ReturnValues& operator= (ReturnValues const&) =default;
+        
+        int push(lua_State* state) const {
+            if(m_fn)
+                return m_fn(state);
+            return 0;
+        }
+        
+        template <typename ... Args>
+        struct impl {
+            typedef decltype(std::make_tuple(std::forward<Args>(std::declval<Args>())...)) tuple_type;
+            static int do_push(tuple_type& tpl, lua_State* state) {
+                Lua::impl::RvPusher rp(state);
+                Lua::impl::for_each_in_tuple(tpl, rp);
+                return rp.count();
+            }
+        };
+        
+        template <typename ... Args>
+        explicit ReturnValues(Args&& ... args)
+        {
+            m_fn = std::bind(ReturnValues::impl<Args...>::do_push,
+                             std::make_tuple(std::forward<Args>(args)...),
+                             std::placeholders::_1);
+        }
+    };
+    
     template <typename ... Args>
-    ReturnValues<Args...> Return(Args&& ... args) {
-        return ReturnValues<Args...>(std::forward<Args>(args)...);
+    ReturnValues Return(Args&& ... args) {
+        return ReturnValues(std::forward<Args>(args)...);
     }
 
     template <typename T>

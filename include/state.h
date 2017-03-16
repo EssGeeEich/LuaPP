@@ -17,12 +17,11 @@
 #include <lua.hpp>
 #include <memory>
 
+#include "fwd.h"
 #include "enums.h"
 #include "variable.h"
 #include "reference.h"
 #include "library.h"
-#include "transform.h"
-#include "type_parser.h"
 
 // Documentation tag
 #define tagged(pops, pushes, errors)
@@ -41,10 +40,11 @@ namespace Lua {
 	
 	class AutoState {
 		lua_State* m_state;
+        bool m_del;
 		AutoState(AutoState const&) =delete;
 		AutoState& operator= (AutoState const&) =delete;
 	public:
-		AutoState(lua_State*);
+		AutoState(lua_State*, bool =false);
 		~AutoState();
 		lua_State* get() const;
 	};
@@ -67,11 +67,9 @@ namespace Lua {
 		std::shared_ptr<AutoState> m_state;
         std::uint64_t m_lastMetatableIndex;
 		
-	protected:
-		State& force_close();
-		
 	public:
 		static State create();
+        static State use_existing_state(lua_State*);
 		
 		State();
 		State(State const&);
@@ -253,12 +251,17 @@ namespace Lua {
         tagged(0,0,-)					template <typename T> void luapp_register_object() { MetatableManager<MetatableDescriptorImpl<T>>::Register(GetState()); }
         tagged(0,1,-)                   int luapp_push_translated_function(std::function<int(lua_State*)> const& function);
         tagged(0,0,-)            inline void luapp_add_translated_function(char const* name, std::function<int(lua_State*)> const& function) { luapp_push_translated_function(function); setglobal(name); }
-        tagged(0,1,-)                   template <typename T, typename ... Args> T* luapp_push_object(Args&& ... args) { return MetatableManager<MetatableDescriptorImpl<T>>::Construct(GetState(),std::forward<Args>(args)...); }
+        tagged(0,1,-)                   template <typename T, typename ... Args> typename Lua::GenericDecay<T>::type* luapp_push_object(Args&& ... args) { return MetatableManager<MetatableDescriptorImpl<T>>::Construct(GetState(),std::forward<Args>(args)...); }
         tagged(0,0,0)                   template <typename T> T* luapp_get_object(int arg) { return MetatableManager<MetatableDescriptorImpl<T>>::FromStack(GetState(),arg); }
         tagged(0,0,e)                   template <typename T> T& luapp_require_object(int arg) { T* ptr = MetatableManager<MetatableDescriptorImpl<T>>::FromStack(GetState(),arg); if(!ptr) luaL_error(GetState(),"C++ / Lua Error: Stack item %d is not of type %s!",arg,MetatableDescriptorImpl<T>::name()); return *ptr; }
         tagged(0,0,0)                   template <typename T> static T* luapp_get_object(lua_State* s, int arg) { return MetatableManager<MetatableDescriptorImpl<T>>::FromStack(s,arg); }
         tagged(0,0,e)                   template <typename T> static T& luapp_require_object(lua_State* s, int arg) { T* ptr = MetatableManager<MetatableDescriptorImpl<T>>::FromStack(s,arg); if(!ptr) luaL_error(s,"C++ / Lua Error: Stack item %d is not of type %s!",arg,MetatableDescriptorImpl<T>::name()); return *ptr; }
+        
+        tagged(0,n,-)                   template <typename T> int luapp_push_returnvalue(T const& arg) { return Lua::TypeConverter<typename GenericDecay<T>::type>::Push(GetState(),arg); }
 	};
 }
+
+#include "transform.h"
+#include "type_parser.h"
 
 #endif // __LUAPP_STATE_H__

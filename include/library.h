@@ -23,25 +23,7 @@
 #include "util.h"
 
 template <typename T> struct MetatableDescriptor;
-enum {
-    MTD_NO_ARGS         =2,
-    MTD_ONE_ARG           ,
-    MTD_TWO_ARGS          ,
-    MTD_THREE_ARGS        ,
-    MTD_FOUR_ARGS         ,
-    MTD_FIVE_ARGS         ,
-    MTD_SIX_ARGS          ,
-    MTD_SEVEN_ARGS        ,
-    MTD_EIGHT_ARGS        ,
-    MTD_FIRST_ARG       =3,
-    MTD_SECOND_ARG        ,
-    MTD_THIRD_ARG         ,
-    MTD_FOURTH_ARG        ,
-    MTD_FIFTH_ARG         ,
-    MTD_SIXTH_ARG         ,
-    MTD_SEVENTH_ARG       ,
-    MTD_EIGHTH_ARG
-};
+
 /*	template <> struct MetatableDescriptor<std::string> {
  *		static char const* name() { return "stdstring"; }
  *		static char const* constructor() { return "create"; }
@@ -73,6 +55,8 @@ namespace Lua {
 
     template <typename T>
     struct MetatableDescriptorImpl {
+        // The mentioned type doesn't have a dedicated metatable!
+        // Please write one!
         static char const* name() { return MetatableDescriptor<T>::name(); }
         static char const* constructor() { return MetatableDescriptor<T>::constructor(); }
         static char const* luaname() { return MetatableDescriptor<T>::luaname(); }
@@ -101,20 +85,28 @@ namespace Lua {
         typedef MetatableDescriptorImpl<T> metatable;
 
         static int RegisterMetatable(lua_State* state) {
+            int count = RegisterLoneMetatable(state);
+
+            std::string constr = metatable::constructor();
+            if(constr.empty())
+                return count;
+            
+            std::vector<luaL_Reg> reg;
+            reg.push_back({constr.c_str(), &MetatableManager<metatable>::LuaConstruct});
+            reg.push_back({nullptr, nullptr});
+
+            lua_createtable(state, 0, reg.size() - 1);
+            luaL_setfuncs(state,reg.data(),0);
+            return count + 1;
+        }
+        static int RegisterLoneMetatable(lua_State* state) {
             luaL_newmetatable(state, metatable::name());
             lua_pushcfunction(state, &MetatableManager<metatable>::Destroy);
             lua_setfield(state, -2, "__gc");
             lua_pushcfunction(state, &MetatableManager<metatable>::Index);
             lua_setfield(state, -2, "__index");
             lua_pop(state, 1);
-
-            std::vector<luaL_Reg> reg;
-            reg.push_back({metatable::constructor(), &MetatableManager<metatable>::LuaConstruct});
-            reg.push_back({nullptr, nullptr});
-
-            lua_createtable(state, 0, reg.size() - 1);
-            luaL_setfuncs(state,reg.data(),0);
-            return 1;
+            return 0;
         }
         static int Index(lua_State* state) {
             T* p = (T*)(luaL_checkudata(state,1,metatable::name()));
@@ -195,9 +187,20 @@ namespace Lua {
             return Construct(state, std::forward<Args>(args)...) ? 1 : 0;
         }
 
-        static void Register(lua_State* state) {
+        static void Register(lua_State* state, bool enable_constructor =true) {
             LuaFunctor::Register(state);
-            luaL_requiref(state, metatable::luaname(), &MetatableManager<metatable>::RegisterMetatable,1);
+            
+            std::string lname = metatable::luaname();
+            if(lname.empty())
+            {
+                lname = metatable::name();
+                enable_constructor = false;
+            }
+            
+            luaL_requiref(state, lname.c_str(), enable_constructor ?
+                              &MetatableManager<metatable>::RegisterMetatable :
+                              &MetatableManager<metatable>::RegisterLoneMetatable,
+                          enable_constructor ? 1 : 0);
             lua_pop(state, 1);
         }
     };
