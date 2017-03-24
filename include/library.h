@@ -20,6 +20,7 @@
 #include <functional>
 #include <type_traits>
 #include <vector>
+#include <type_traits>
 #include "util.h"
 
 template <typename T> struct MetatableDescriptor;
@@ -27,6 +28,7 @@ template <typename T> struct MetatableDescriptor;
 /*	template <> struct MetatableDescriptor<std::string> {
  *		static char const* name() { return "stdstring"; }
  *		static char const* constructor() { return "create"; }
+ *      static bool construct(std::string* p) { return new (p) std::string(); }
  *		static void metatable(Lua::function_storage<std::string>& mt) {
  *			// Add metatable functions
  *			mt["display"] = [](std::string& v, lua_State*) -> int {
@@ -52,7 +54,12 @@ namespace Lua {
         }
     };
     template <typename T> using member_function_storage = std::map<std::string,ClassMemberFunctor<T>>;
-
+    
+    template <typename T> bool DefaultConstructor(T* location) {
+        new (location) T();
+        return true;
+    }
+    
     template <typename T>
     struct MetatableDescriptorImpl {
         // The mentioned type doesn't have a dedicated metatable!
@@ -60,6 +67,7 @@ namespace Lua {
         static char const* name() { return MetatableDescriptor<T>::name(); }
         static char const* constructor() { return MetatableDescriptor<T>::constructor(); }
         static char const* luaname() { return MetatableDescriptor<T>::luaname(); }
+        static bool construct(T* location) { return MetatableDescriptor<T>::construct(location); }
         static void metatable(Lua::member_function_storage<T>* & dest) {
             static Lua::member_function_storage<T> mt;
             if(mt.empty())
@@ -182,9 +190,35 @@ namespace Lua {
             lua_setmetatable(state, -2);
             return p;
         }
-        template <typename ... Args>
-        static int ConstructLua(lua_State* state, Args&& ... args) {
-            return Construct(state, std::forward<Args>(args)...) ? 1 : 0;
+        static int ConstructLua(lua_State* state) {
+            T* p = (T*)lua_newuserdata(state, sizeof(T));
+            if(!p)
+                return 0;
+            luaL_getmetatable(state, metatable::name());
+            try {
+                //new (p) T(std::forward<Args>(args)...);
+                if(!metatable::construct(p))
+                {
+                    lua_pop(state, 2);
+                    luaL_error(state, "C++ Error: Unable to construct object %s.\nUnknown error.", metatable::name());
+                    return 0;     
+                }
+            } catch(lua_exception& e) {
+                lua_pop(state, 2);
+                luaL_error(state, "C++ / Lua Exception thrown while constructing object %s.\n%s", metatable::name(), e.what());
+                return 0;
+            } catch(std::exception& e) {
+                lua_pop(state, 2);
+                luaL_error(state, "C++ Exception thrown while constructing object %s.\n%s", metatable::name(), e.what());
+                return 0;
+            } catch(...) {
+                lua_pop(state,2);
+                luaL_error(state, "Unknown C++ Exception thrown while constructing object %s.",metatable::name());
+                return 0;
+            }
+
+            lua_setmetatable(state, -2);
+            return 1;
         }
 
         static void Register(lua_State* state, bool enable_constructor =true) {

@@ -574,6 +574,17 @@ namespace Lua {
             }
         };
     }
+    
+    template <typename Class, typename RetVal, typename ... Args, typename ... BoundArgs>
+    std::function<int(Class&, lua_State*)> static TransformPlain(std::function<int(Class&, lua_State*)> const& fnc) {
+        return [=](Class& instance, lua_State* state) -> int {
+            try {
+                return fnc(instance, state);
+            } catch(std::exception& e) {
+                return luaL_error(state,"C++ Exception Thrown.\n%s",e.what());
+            }
+        };
+    }
 }
 
 
