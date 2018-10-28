@@ -10,7 +10,6 @@ namespace Lua {
     class AutoState;
     class State;
     template <typename> struct TypeConverter;
-    template <typename> class Optional;
     class ReturnValues;
     template <typename> class Arg;
     template <typename> struct Map;
