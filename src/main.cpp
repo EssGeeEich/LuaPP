@@ -52,6 +52,7 @@ template <> struct MetatableDescriptor<TestCase> {
     static char const* name() { return "testcase_metatable"; }
     static char const* luaname() { return "testcase"; }
     static char const* constructor() { return "create"; }
+    static bool construct(TestCase* tc) { new(tc) TestCase(); return true; }
     
     static void metatable(Lua::member_function_storage<TestCase>& mt)
     {
