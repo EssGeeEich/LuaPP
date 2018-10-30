@@ -111,6 +111,7 @@ namespace Lua {
 		tagged(0,0,-)					bool isboolean(int);
 		tagged(0,0,-)					bool iscfunction(int);
 		tagged(0,0,-)					bool isfunction(int);
+		tagged(0,0,-)					bool isinteger(int);
 		tagged(0,0,-)					bool islightuserdata(int);
 		tagged(0,0,-)					bool isnil(int);
 		tagged(0,0,-)					bool isnone(int);

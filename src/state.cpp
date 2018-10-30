@@ -90,6 +90,7 @@ namespace Lua {
 	bool State::isboolean(int index) { return lua_isboolean(GetState(),index) != 0; }
 	bool State::iscfunction(int index) { return lua_iscfunction(GetState(),index) != 0; }
 	bool State::isfunction(int index) { return lua_isfunction(GetState(),index) != 0; }
+	bool State::isinteger(int index) { return lua_isinteger(GetState(),index) != 0; }
 	bool State::islightuserdata(int index) { return lua_islightuserdata(GetState(),index) != 0; }
 	bool State::isnil(int index) { return lua_isnil(GetState(),index) != 0; }
 	bool State::isnone(int index) { return lua_isnone(GetState(),index) != 0; }
