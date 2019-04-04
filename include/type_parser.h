@@ -17,6 +17,7 @@
 #include "fwd.h"
 #include "types.h"
 #include "state.h"
+#include "variable.h"
 
 namespace Lua {
     namespace impl {
@@ -230,6 +231,16 @@ namespace Lua {
             return TypeConverter<T>::Name() + " table";
         }
     };
+	
+	template <> struct TypeConverter<std::shared_ptr<Lua::Variable>> {
+		typedef Lua::Arg<std::shared_ptr<Lua::Variable>> Arg;
+		static Arg Read(lua_State* s, int id) {
+			return Arg::ToMove(std::shared_ptr<Lua::Variable>((Lua::State::use_existing_state(s).luapp_read(id))));
+		}
+		static std::string Name() {
+			return "variable";
+		}
+	};
     
     template <> struct TypeConverter<Lua::ReturnValues> {
         static int Push(lua_State* s, Lua::ReturnValues const& args) {
