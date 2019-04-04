@@ -249,7 +249,7 @@ namespace Lua {
 		
         // Required for most users
         tagged(0,0,-)                   void luapp_register_metatables();
-        tagged(0,0,-)					template <typename T> void luapp_register_object() { MetatableManager<MetatableDescriptorImpl<T>>::Register(GetState()); }
+        tagged(0,0,-)					template <typename T> void luapp_register_object(bool w_constructor=true) { MetatableManager<MetatableDescriptorImpl<T>>::Register(GetState(),w_constructor); }
         tagged(0,1,-)                   int luapp_push_translated_function(std::function<int(lua_State*)> const& function);
         tagged(0,0,-)            inline void luapp_add_translated_function(char const* name, std::function<int(lua_State*)> const& function) { luapp_push_translated_function(function); setglobal(name); }
         tagged(0,1,-)                   template <typename T, typename ... Args> typename Lua::GenericDecay<T>::type* luapp_push_object(Args&& ... args) { return MetatableManager<MetatableDescriptorImpl<T>>::Construct(GetState(),std::forward<Args>(args)...); }
