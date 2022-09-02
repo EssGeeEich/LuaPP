@@ -82,6 +82,7 @@ namespace Lua {
 	lua_Alloc State::getallocf(void** p) { return lua_getallocf(GetState(),p); }
 	int State::getfield(int v, char const* f) { return lua_getfield(GetState(),v,f); }
 	int State::getglobal(char const* name) { return lua_getglobal(GetState(),name); }
+	int State::getiuservalue(int index, int n) { return lua_getiuservalue(GetState(),index,n); }	
 	int State::getmetatable(int index) { return lua_getmetatable(GetState(),index); }
 	int State::gettable(int index) { return lua_gettable(GetState(),index); }
 	int State::gettop() { return lua_gettop(GetState()); }
@@ -105,6 +106,7 @@ namespace Lua {
 	void State::newtable() { return lua_newtable(GetState()); }
 	lua_State* State::newthread() { return lua_newthread(GetState()); }
 	void* State::newuserdata(size_t size) { return lua_newuserdata(GetState(),size); }
+	void* State::newuserdatauv(size_t size, int nuvalue) { return lua_newuserdatauv(GetState(),size,nuvalue); }
 	int State::next(int index) { return lua_next(GetState(),index); }
 	int State::pcall(int a, int b, int c, int d, lua_KFunction e) { return lua_pcallk(GetState(),a,b,c,d,e); }
 	void State::pop(int count) { return lua_pop(GetState(),count); }
@@ -131,14 +133,16 @@ namespace Lua {
 	void State::register_(char const* s, lua_CFunction f) { return lua_register(GetState(),s,f); }
 	void State::remove(int index) { return lua_remove(GetState(),index); }
 	void State::replace(int index) { return lua_replace(GetState(),index); }
-	int State::resume(lua_State* state2, int index) { return lua_resume(GetState(),state2,index); }
+	int State::resetthread() { return lua_resetthread(GetState()); }
+	int State::resume(lua_State* state2, int index, int* nres) { return lua_resume(GetState(),state2,index,nres); }
 	void State::setallocf(lua_Alloc alloc, void* p) { return lua_setallocf(GetState(),alloc,p); }
 	void State::setfield(int index, char const* f) { return lua_setfield(GetState(),index,f); }
 	void State::setglobal(char const* glob) { return lua_setglobal(GetState(),glob); }
+	int State::setiuservalue(int index, int n) { return lua_setiuservalue(GetState(),index,n); }
 	int State::setmetatable(int index) { return lua_setmetatable(GetState(),index); }
 	void State::settable(int index) { return lua_settable(GetState(),index); }
 	void State::settop(int index) { return lua_settop(GetState(),index); }
-	void State::setuservalue(int index) { return lua_setuservalue(GetState(),index); }
+	int State::setuservalue(int index) { return lua_setuservalue(GetState(),index); }
 	int State::status() { return lua_status(GetState()); }
 	bool State::toboolean(int index) { return lua_toboolean(GetState(),index) != 0; }
 	lua_CFunction State::tocfunction(int index) { return lua_tocfunction(GetState(),index); }
@@ -153,7 +157,7 @@ namespace Lua {
 	void* State::touserdata(int index) { return lua_touserdata(GetState(),index); }
 	Type State::type(int index) { return static_cast<Type>(lua_type(GetState(),index)); }
 	char const* State::typename_(int index) { return lua_typename(GetState(),index); }
-	lua_Number const* State::version() { return lua_version(GetState()); }
+	lua_Number State::version() { return lua_version(GetState()); }
 	void State::xmove(lua_State* state2, int index) { return lua_xmove(GetState(),state2,index); }
 	int State::yieldk(int a, int b, lua_KFunction c) { return lua_yieldk(GetState(),a,b,c); }
 	

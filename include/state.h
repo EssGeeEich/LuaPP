@@ -103,6 +103,7 @@ namespace Lua {
 		tagged(0,0,-)					lua_Alloc getallocf(void**);
 		tagged(0,1,e)					int getfield(int,char const*);
 		tagged(0,1,e)					int getglobal(char const*);
+		tagged(0,1,e)					int getiuservalue(int,int);
 		tagged(0,0|1,-)					int getmetatable(int);
 		tagged(1,1,e)					int gettable(int);
 		tagged(0,0,-)					int gettop();
@@ -126,6 +127,7 @@ namespace Lua {
 		tagged(0,1,e)					void newtable();
 		tagged(0,1,e)					lua_State* newthread();
 		tagged(0,1,e)					void* newuserdata(size_t);
+		tagged(0,1,e)					void* newuserdatauv(size_t, int);
 		tagged(1,2|0,e)					int next(int);
 		tagged(nargs+1,nresults|1,-)	int pcall(int =0,int =0,int =0,int =0, lua_KFunction =nullptr);
 		tagged(n,0,-)					void pop(int);
@@ -155,14 +157,16 @@ namespace Lua {
 		tagged(0,0,e)					void register_(char const*, lua_CFunction);
 		tagged(1,0,-)					void remove(int);
 		tagged(1,0,-)					void replace(int);
-		tagged(?,?,-)					int resume(lua_State*,int);
+		tagged(0,?,-)					int resetthread();
+		tagged(?,?,-)					int resume(lua_State*,int,int*);
 		tagged(0,0,-)					void setallocf(lua_Alloc,void*);
 		tagged(1,0,e)					void setfield(int,char const*);
 		tagged(1,0,e)					void setglobal(char const*);
+		tagged(1,0,-)					int setiuservalue(int, int);
 		tagged(1,0,-)					int setmetatable(int);
 		tagged(2,0,e)					void settable(int);
 		tagged(?,?,-)					void settop(int);
-		tagged(1,0,-)					void setuservalue(int);
+		tagged(1,0,-)					int setuservalue(int);
 		tagged(0,0,-)					int status();
 		tagged(0,0,-)					bool toboolean(int);
 		tagged(0,0,-)					lua_CFunction tocfunction(int);
@@ -178,7 +182,7 @@ namespace Lua {
 		tagged(0,0,-)					void* touserdata(int);
 		tagged(0,0,-)					Type type(int);
 		tagged(0,0,-)					char const* typename_(int);
-		tagged(0,0,v)					lua_Number const* version();
+		tagged(0,0,v)					lua_Number version();
 		tagged(?,?,-)					void xmove(lua_State*, int);
 		tagged(?,?,-)					int yieldk(int, int =0, lua_KFunction =nullptr);
 		
