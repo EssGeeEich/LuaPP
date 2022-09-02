@@ -14,7 +14,7 @@
 
 #ifndef __LUAPP_REFERENCE_H__
 #define __LUAPP_REFERENCE_H__
-#include <lua.hpp>
+#include "luainclude.h"
 
 namespace Lua {
 	class Reference {

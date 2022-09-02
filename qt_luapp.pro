@@ -6,3 +6,4 @@ SOURCES += \
 	$$PWD/src/main.cpp
 
 include(qt_luapp.pri)
+include(qt_lua.pri)

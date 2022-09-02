@@ -11,6 +11,7 @@ SOURCES += \
 HEADERS += \
 	$$PWD/include/enums.h \
 	$$PWD/include/library.h \
+	$$PWD/include/luainclude.h \
 	$$PWD/include/reference.h \
 	$$PWD/include/state.h \
 	$$PWD/include/transform.h \
@@ -20,4 +21,3 @@ HEADERS += \
     $$PWD/include/type_parser.h \
     $$PWD/include/fwd.h
 	
-LIBS += -llua

@@ -3,7 +3,7 @@
 #include <exception>
 #include <string>
 #include <functional>
-#include <lua.hpp>
+#include "luainclude.h"
 
 namespace Lua {
     class lua_exception : public std::exception {

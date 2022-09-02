@@ -15,12 +15,12 @@
 #ifndef __LUAPP_LIBRARY_H__
 #define __LUAPP_LIBRARY_H__
 
-#include <lua.hpp>
 #include <map>
 #include <functional>
 #include <type_traits>
 #include <vector>
 #include <type_traits>
+#include "luainclude.h"
 #include "util.h"
 
 template <typename T> struct MetatableDescriptor;

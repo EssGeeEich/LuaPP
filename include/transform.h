@@ -18,7 +18,7 @@
 #include <functional>
 #include <stdexcept>
 #include <tuple>
-#include <lua.hpp>
+#include "luainclude.h"
 #include "util.h"
 #include "type_parser.h"
 

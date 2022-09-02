@@ -14,9 +14,9 @@
 
 #ifndef __LUAPP_STATE_H__
 #define __LUAPP_STATE_H__
-#include <lua.hpp>
 #include <memory>
 
+#include "luainclude.h"
 #include "fwd.h"
 #include "enums.h"
 #include "variable.h"

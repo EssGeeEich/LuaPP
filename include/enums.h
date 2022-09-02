@@ -14,7 +14,7 @@
 
 #ifndef __LUAPP_ENUMS_H__
 #define __LUAPP_ENUMS_H__
-#include <lua.hpp>
+#include "luainclude.h"
 
 namespace Lua {
 	enum CompareOp {

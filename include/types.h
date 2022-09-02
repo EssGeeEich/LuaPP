@@ -1,6 +1,5 @@
 #ifndef TYPES_H
 #define TYPES_H
-#include <lua.hpp>
 #include <string>
 #include <vector>
 #include <functional>
@@ -8,6 +7,7 @@
 #include <memory>
 #include <type_traits>
 #include <cstring>
+#include "luainclude.h"
 #include "fwd.h"
 #include "library.h"
 #include "util.h"
