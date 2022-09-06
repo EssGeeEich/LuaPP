@@ -150,7 +150,7 @@ namespace Lua {
 		tagged(1,1,-)					int rawget(int);
 		tagged(0,1,-)					int rawgeti(int,lua_Integer);
 		tagged(0,1,-)					int rawgetp(int,void const*);
-		tagged(0,0,-)					size_t rawlen(int);
+		tagged(0,0,-)					lua_Unsigned rawlen(int);
 		tagged(2,0,e)					void rawset(int);
 		tagged(1,0,e)					void rawseti(int,lua_Integer);
 		tagged(1,0,e)					void rawsetp(int,void const*);
@@ -200,7 +200,7 @@ namespace Lua {
 		tagged(0,0,v)					void checktype(int,Type);
 		tagged(0,0,v)					void* checkudata(int, char const*);
 		tagged(0,0,v)					void checkversion();
-		tagged(0,0,v)					template <typename ... Args> int error(char const* fmt, Args&& ... args) { CheckVarArg(std::forward<Args>(args)...); return luaL_error(m_state,fmt,std::forward<Args>(args)...); }
+		tagged(0,0,v)					template <typename ... Args> int error(char const* fmt, Args&& ... args) { CheckVarArg(std::forward<Args>(args)...); return luaL_error(GetState(),fmt,std::forward<Args>(args)...); }
 		tagged(0,0|1,e)					int getmetafield(int, char const*);
 		tagged(0,1,-)					int getmetatable(char const*);
 		tagged(0,1,e)					int getsubtable(int, char const*);
