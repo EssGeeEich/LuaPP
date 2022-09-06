@@ -126,7 +126,7 @@ namespace Lua {
 	int State::rawget(int index) { return lua_rawget(GetState(),index); }
 	int State::rawgeti(int index, lua_Integer v) { return lua_rawgeti(GetState(),index,v); }
 	int State::rawgetp(int index, void const* p) { return lua_rawgetp(GetState(),index,p); }
-	size_t State::rawlen(int index) { return lua_rawlen(GetState(),index); }
+	lua_Unsigned State::rawlen(int index) { return lua_rawlen(GetState(),index); }
 	void State::rawset(int index) { return lua_rawset(GetState(),index); }
 	void State::rawseti(int index, lua_Integer i) { return lua_rawseti(GetState(),index,i); }
 	void State::rawsetp(int index, void const* p) { return lua_rawsetp(GetState(),index,p); }
