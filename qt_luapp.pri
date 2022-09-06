@@ -1,3 +1,5 @@
+include(qt_lua.pri)
+
 INCLUDEPATH += $$PWD/include
 
 SOURCES += \
