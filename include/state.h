@@ -65,7 +65,6 @@ namespace Lua {
 	
 	class State {
 		std::shared_ptr<AutoState> m_state;
-        std::uint64_t m_lastMetatableIndex;
 		
 	public:
 		static State create();
