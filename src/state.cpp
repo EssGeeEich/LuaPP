@@ -270,8 +270,15 @@ namespace Lua {
 				int top = gettop();
 				for(pushnil(); next(top); pop(1))
 				{
+					std::string s;
+					if(type(-2) == TP_STRING)
+						s = tostdstring(-2);
+					else if(isnumber(-2))
+						s = std::tostring(tonumber(-2))
+					else
+						continue;
 					pTable->get().insert(std::make_pair<String,std::shared_ptr<Variable>>(
-						String(tostdstring(-2)),
+						Lua::String(s),
                         std::shared_ptr<Variable>(luapp_read(-1))
 					));
 				}
