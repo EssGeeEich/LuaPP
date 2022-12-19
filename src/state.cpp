@@ -274,7 +274,7 @@ namespace Lua {
 					if(type(-2) == TP_STRING)
 						s = tostdstring(-2);
 					else if(isnumber(-2))
-						s = std::tostring(tonumber(-2))
+						s = std::to_string(tonumber(-2));
 					else
 						continue;
 					pTable->get().insert(std::make_pair<String,std::shared_ptr<Variable>>(
