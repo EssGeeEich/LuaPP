@@ -1,4 +1,4 @@
-/*	Copyright (c) 2015 SGH
+/*	Copyright (c) 2023 Mauro Grassia
 **	
 **	Permission is granted to use, modify and redistribute this software.
 **	Modified versions of this software MUST be marked as such.
@@ -9,22 +9,24 @@
 **	and this permission notice shall be included in all copies
 **	or substantial portions of the software.
 **	
-**	File created on: 15/11/2015
 */
 
-#ifndef __LUAPP_REFERENCE_H__
-#define __LUAPP_REFERENCE_H__
-#include "luainclude.h"
+#ifndef LUAPP_FWDDECL_HPP
+#define LUAPP_FWDDECL_HPP
+#include "Enums.hpp"
+
+template <typename T> struct MetatableDescriptor;
 
 namespace Lua {
-	class Reference {
-		friend class State;
-		int m_referenceKey;
-	protected:
-		explicit Reference(int refKey);
-	public:
-		explicit operator bool() const noexcept;
-		int key() const noexcept;
-	};
+    class LuaFunctor;
+    class Reference;
+    class AutoState;
+    class State;
+	class StateManager;
+    template <typename> struct TypeConverter;
+    class ReturnValues;
+    template <typename> class Arg;
+    template <typename> struct Map;
+    template <typename> struct Array;
 }
-#endif // __LUAPP_REFERENCE_H__
+#endif

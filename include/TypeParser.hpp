@@ -1,4 +1,4 @@
-/*	Copyright (c) 2015 SGH
+/*	Copyright (c) 2023 Mauro Grassia
 **	
 **	Permission is granted to use, modify and redistribute this software.
 **	Modified versions of this software MUST be marked as such.
@@ -9,15 +9,15 @@
 **	and this permission notice shall be included in all copies
 **	or substantial portions of the software.
 **	
-**	File created on: 17/11/2015
 */
 
-#ifndef __LUAPP_TYPEEXT_H__
-#define __LUAPP_TYPEEXT_H__
-#include "fwd.h"
-#include "types.h"
-#include "state.h"
-#include "variable.h"
+#ifndef LUAPP_TYPEPARSER_HPP
+#define LUAPP_TYPEPARSER_HPP
+
+#include "FwdDecl.hpp"
+#include "Types.hpp"
+#include "State.hpp"
+#include "StateManager.hpp"
 
 namespace Lua {
     namespace impl {
@@ -30,7 +30,7 @@ namespace Lua {
                     lua_Integer i = lua_tointegerx(s,id,&rv);
                     if(!rv)
                         return Arg::Nil();
-                    return Arg::ToCopy(i);
+                    return Arg::ToCopy(static_cast<T>(i));
                 }
                 else if(lua_isnumber(s,id))
                 {
@@ -38,7 +38,7 @@ namespace Lua {
                     lua_Number i = lua_tonumberx(s,id,&rv);
                     if(!rv)
                         return Arg::Nil();
-                    return Arg::ToCopy(static_cast<lua_Integer>(i));
+                    return Arg::ToCopy(static_cast<T>(i));
                 }
                 return Arg::Nil();
             }
@@ -59,7 +59,7 @@ namespace Lua {
                     lua_Number i = lua_tonumberx(s,id,&rv);
                     if(!rv)
                         return Arg::Nil();
-                    return Arg::ToCopy(i);
+                    return Arg::ToCopy(static_cast<T>(i));
                 }
                 else if(lua_isinteger(s,id))
                 {
@@ -67,7 +67,7 @@ namespace Lua {
                     lua_Integer i = lua_tointegerx(s,id,&rv);
                     if(!rv)
                         return Arg::Nil();
-                    return Arg::ToCopy(static_cast<lua_Number>(i));
+                    return Arg::ToCopy(static_cast<T>(i));
                 }
                 return Arg::Nil();
             }
@@ -83,7 +83,7 @@ namespace Lua {
 
     // For classes with a metatype
     template <typename T> struct TypeConverter {
-        typedef Lua::MetatableDescriptorImpl<T> metatable;
+        typedef Lua::impl::MetatableDescriptorImpl<T> metatable;
         typedef Lua::Arg<T> Arg;
         static Arg Read(lua_State* s, int id) {
             T* p = (T*)luaL_checkudata(s,id,metatable::name());
@@ -231,16 +231,6 @@ namespace Lua {
             return TypeConverter<T>::Name() + " table";
         }
     };
-	
-	template <> struct TypeConverter<std::shared_ptr<Lua::Variable>> {
-		typedef Lua::Arg<std::shared_ptr<Lua::Variable>> Arg;
-		static Arg Read(lua_State* s, int id) {
-			return Arg::ToMove(std::shared_ptr<Lua::Variable>((Lua::State::use_existing_state(s).luapp_read(id))));
-		}
-		static std::string Name() {
-			return "variable";
-		}
-	};
     
     template <> struct TypeConverter<Lua::ReturnValues> {
         static int Push(lua_State* s, Lua::ReturnValues const& args) {
@@ -249,4 +239,4 @@ namespace Lua {
     };
 }
 
-#endif //__LUAPP_TYPEEXT_H__
+#endif

@@ -1,4 +1,4 @@
-/*	Copyright (c) 2015 SGH
+/*	Copyright (c) 2023 Mauro Grassia
 **	
 **	Permission is granted to use, modify and redistribute this software.
 **	Modified versions of this software MUST be marked as such.
@@ -9,20 +9,18 @@
 **	and this permission notice shall be included in all copies
 **	or substantial portions of the software.
 **	
-**	File created on: 17/11/2015
 */
 
-#ifndef __LUAPP_TRANSFORM_H__
-#define __LUAPP_TRANSFORM_H__
+#ifndef LUAPP_TRANSFORM_HPP
+#define LUAPP_TRANSFORM_HPP
 
 #include <functional>
 #include <stdexcept>
 #include <tuple>
-#include "luainclude.h"
-#include "util.h"
-#include "type_parser.h"
+#include "LuaInclude.hpp"
+#include "Utils.hpp"
+#include "TypeParser.hpp"
 
-#define LUAPP_TRANSFORM_PARAMETER(firstID, Is) (firstID - ArgCount + 1 + Is - (sizeof...(BoundArgs)))
 namespace Lua {
     namespace Tuple {
         template <typename X> struct GetRetVal;
@@ -253,7 +251,6 @@ namespace Lua {
             template <typename ... BoundArgs>
             static int Call(Class& instance, ReturnValue (Class::* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
-                Caller::running_state = state;
                 using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
@@ -268,7 +265,6 @@ namespace Lua {
             template <typename ... BoundArgs>
             static int Call(Class& instance, void (Class::* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
-                Caller::running_state = state;
                 using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
@@ -291,7 +287,6 @@ namespace Lua {
             template <typename ... BoundArgs>
             static int Call(Class const& instance, ReturnValue (Class::* fptr)(Args...) const, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
-                Caller::running_state = state;
                 using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
@@ -309,7 +304,6 @@ namespace Lua {
             template <typename ... BoundArgs>
             static int Call(Class const& instance, void (Class::* fptr)(Args...) const, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
-                Caller::running_state = state;
                 using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
@@ -329,7 +323,6 @@ namespace Lua {
             template <typename ... BoundArgs>
             static int Call(ReturnValue (* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
-                Caller::running_state = state;
                 using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
@@ -344,7 +337,6 @@ namespace Lua {
             template <typename ... BoundArgs>
             static int Call(void (* fptr)(Args...), lua_State* state, int firstID, BoundArgs&& ... bound)
             {
-                Caller::running_state = state;
                 using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
@@ -363,7 +355,6 @@ namespace Lua {
             template <typename ... BoundArgs>
             static int Call(std::function<ReturnValue(Args...)> const& fptr, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
-                Caller::running_state = state;
                 using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
@@ -378,7 +369,6 @@ namespace Lua {
             template <typename ... BoundArgs>
             static int Call(std::function<void(Args...)> const& fptr, lua_State* state, int firstID, BoundArgs&& ... bound)
             {
-                Caller::running_state = state;
                 using FullArgsType = std::tuple<typename TupleDecay<Args>::type...>;
                 using SecondTupleType = typename Tuple::RemoveHead< sizeof...(BoundArgs), FullArgsType >::type;
                 SecondTupleType stt;
@@ -576,6 +566,4 @@ namespace Lua {
     }
 }
 
-
-#undef LUAPP_TRANSFORM_PARAMETER
-#endif // __LUAPP_TRANSFORM_H__
+#endif

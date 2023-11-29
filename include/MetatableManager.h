@@ -1,4 +1,4 @@
-/*	Copyright (c) 2015 SGH
+/*	Copyright (c) 2023 Mauro Grassia
 **	
 **	Permission is granted to use, modify and redistribute this software.
 **	Modified versions of this software MUST be marked as such.
@@ -9,22 +9,25 @@
 **	and this permission notice shall be included in all copies
 **	or substantial portions of the software.
 **	
-**	File created on: 15/11/2015
 */
 
-#ifndef __LUAPP_LIBRARY_H__
-#define __LUAPP_LIBRARY_H__
+#ifndef LUAPP_METATABLEMANAGER_HPP
+#define LUAPP_METATABLEMANAGER_HPP
 
 #include <map>
 #include <functional>
 #include <type_traits>
 #include <vector>
 #include <type_traits>
-#include "luainclude.h"
-#include "util.h"
+#include <string>
+
+#include "LuaInclude.hpp"
+#include "Utils.hpp"
+#include "Functor.hpp"
 
 template <typename T> struct MetatableDescriptor;
 
+// TODO: Update
 /*	template <> struct MetatableDescriptor<std::string> {
  *		static char const* name() { return "stdstring"; }
  *		static char const* constructor() { return "create"; }
@@ -40,57 +43,52 @@ template <typename T> struct MetatableDescriptor;
  */
 
 namespace Lua {
-    template <typename T>
-    class ClassMemberFunctor {
-        std::function<int(T&, lua_State*)> m_functor;
-    public:
-        ClassMemberFunctor() {}
-        ClassMemberFunctor(std::function<int(T&, lua_State*)> f) : m_functor(std::move(f)) {}
+	namespace impl {
+		template <typename T>
+		class ClassMemberFunctor {
+			std::function<int(T&, lua_State*)> m_functor;
+		public:
+			ClassMemberFunctor() {}
+			ClassMemberFunctor(std::function<int(T&, lua_State*)> f) : m_functor(std::move(f)) {}
+	
+			int operator() (T& data, lua_State* state) const {
+				if(m_functor)
+					return m_functor(data,state);
+				return 0;
+			}
+		};
+	}
+	
+	template <typename T> using member_function_storage = std::map<std::string, impl::ClassMemberFunctor<T>>;
+		
+	namespace impl {	
+		template <typename T>
+		struct MetatableDescriptorImpl {
+			// The mentioned type doesn't have a dedicated metatable!
+			// Please write one!
+			static char const* name() { return MetatableDescriptor<T>::name(); }
+			static char const* constructor() { return MetatableDescriptor<T>::constructor(); }
+			static char const* luaname() { return MetatableDescriptor<T>::luaname(); }
+			static bool construct(T* location) { return MetatableDescriptor<T>::construct(location); }
+			static void metatable(Lua::member_function_storage<T>* & dest) {
+				static Lua::member_function_storage<T> mt;
+				if(mt.empty())
+					MetatableDescriptor<T>::metatable(mt);
+				dest = &mt;
+			}
+		};
+	}
 
-        int operator() (T& data, lua_State* state) const {
-            if(m_functor)
-                return m_functor(data,state);
-            return 0;
-        }
-    };
-    template <typename T> using member_function_storage = std::map<std::string,ClassMemberFunctor<T>>;
-    
-    template <typename T> bool DefaultConstructor(T* location) {
-        new (location) T();
-        return true;
-    }
-    
-    template <typename T>
-    struct MetatableDescriptorImpl {
-        // The mentioned type doesn't have a dedicated metatable!
-        // Please write one!
-        static char const* name() { return MetatableDescriptor<T>::name(); }
-        static char const* constructor() { return MetatableDescriptor<T>::constructor(); }
-        static char const* luaname() { return MetatableDescriptor<T>::luaname(); }
-        static bool construct(T* location) { return MetatableDescriptor<T>::construct(location); }
-        static void metatable(Lua::member_function_storage<T>* & dest) {
-            static Lua::member_function_storage<T> mt;
-            if(mt.empty())
-                MetatableDescriptor<T>::metatable(mt);
-            dest = &mt;
-        }
-    };
+	template <typename T> bool DefaultConstructor(T* location) {
+		new (location) T();
+		return true;
+	}
 
-    class LuaFunctor {
-        friend class State;
-        static int RegisterMetatable(lua_State*);
-        static int Call(lua_State*);
-        static int Destroy(lua_State*);
-        typedef std::function<int(lua_State*)> functor_type;
-    public:
-        static void Register(lua_State*);
-        static int Push(lua_State*, functor_type);
-    };
-
-    template <typename T> class MetatableManager;
+    template <typename> class MetatableManager;
+	
     template <typename T>
-    class MetatableManager<MetatableDescriptorImpl<T>> {
-        typedef MetatableDescriptorImpl<T> metatable;
+    class MetatableManager<impl::MetatableDescriptorImpl<T>> {
+        typedef impl::MetatableDescriptorImpl<T> metatable;
 
         static int RegisterMetatable(lua_State* state) {
             int count = RegisterLoneMetatable(state);
@@ -100,10 +98,10 @@ namespace Lua {
                 return count;
             
             std::vector<luaL_Reg> reg;
-            reg.push_back({constr.c_str(), &MetatableManager<metatable>::LuaConstruct});
+            reg.push_back({constr.c_str(), &MetatableManager<metatable>::ConstructLua});
             reg.push_back({nullptr, nullptr});
 
-            lua_createtable(state, 0, reg.size() - 1);
+            lua_createtable(state, 0, static_cast<int>(reg.size() - 1));
             luaL_setfuncs(state,reg.data(),0);
             return count + 1;
         }
@@ -138,7 +136,7 @@ namespace Lua {
                 if(it == mt.end())
                     return 0;
                 typename member_function_storage<T>::value_type::second_type selected_function = it->second;
-                return LuaFunctor::Push(state, [=](lua_State* state) -> int { return selected_function(*p, state); });
+                return impl::Functor::Push(state, [=](lua_State* state) -> int { return selected_function(*p, state); });
             }
             return 0;
         }
@@ -157,9 +155,6 @@ namespace Lua {
                 }
             }
             return 0;
-        }
-        static int LuaConstruct(lua_State* state) {
-            return ConstructLua(state);
         }
     public:
         static T* FromStack(lua_State* state, int arg) {
@@ -221,23 +216,24 @@ namespace Lua {
             return 1;
         }
 
-        static void Register(lua_State* state, bool enable_constructor =true) {
-            LuaFunctor::Register(state);
+        static void Register(lua_State* state, bool allowConstructor = true) {
+            impl::Functor::Register(state);
             
             std::string lname = metatable::luaname();
             if(lname.empty())
             {
                 lname = metatable::name();
-                enable_constructor = false;
+                allowConstructor = false;
             }
             
-            luaL_requiref(state, lname.c_str(), enable_constructor ?
+            luaL_requiref(state, lname.c_str(), allowConstructor ?
                               &MetatableManager<metatable>::RegisterMetatable :
                               &MetatableManager<metatable>::RegisterLoneMetatable,
-                          enable_constructor ? 1 : 0);
+                          allowConstructor ? 1 : 0);
             lua_pop(state, 1);
         }
     };
+	
 }
 
-#endif // __LUAPP_LIBRARY_H__
+#endif

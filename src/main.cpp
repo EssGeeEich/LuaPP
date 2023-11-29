@@ -12,7 +12,8 @@
 **	File created on: 15/11/2015
 */
 
-#include "state.h"
+#include "State.hpp"
+#include "StateManager.hpp"
 #include <iostream>
 #include <cmath>
 
@@ -33,7 +34,7 @@ public:
         std::cout << "TestCase Display: " << m_data << std::endl;
     }
     
-    void DisplayArguments(int Arg1, float Arg2, std::string const& Arg3) {
+    void DisplayArguments(int Arg1, lua_Number Arg2, std::string const& Arg3) {
         std::cout << "TestCase DisplayArguments." << std::endl
                   << "Arg1: " << Arg1 << std::endl
                   << "Arg2: " << Arg2 << std::endl
@@ -66,13 +67,16 @@ template <> struct MetatableDescriptor<TestCase> {
 
 int main()
 {
-	Lua::State state = Lua::State::create();
-    state.luapp_register_metatables();
-    state.luapp_register_object<TestCase>();
+	std::shared_ptr<Lua::State> state = Lua::StateManager::Get().Create();
+	if(!state)
+		return 1;
 	
-    state.luapp_add_translated_function("rand", Lua::Transform(std::rand));
-    
-    state.loadstring(R"literal(
+    state->luapp_register_metatables();
+    state->luapp_register_object<TestCase>();
+	
+    state->luapp_add_translated_function("rand", Lua::Transform(std::rand));
+    state->pushfstring("%1", "hi");
+    state->loadstring(R"literal(
     local TestCase = testcase.create();    -- See luaname() and constructor()
     TestCase:SetText("Hello World!");
     TestCase:Const();
@@ -80,6 +84,6 @@ int main()
     TestCase:DisplayArgs(rand(), 3.0 * 0.5, "Something something");
     TestCase:DisplayArgs_BoundArguments("The first two arguments have been bound to 42 and 3.14.");
     )literal");
-	state.call();
+	state->call();
 	return 0;
 }

@@ -1,19 +1,4 @@
-/*	Copyright (c) 2015 SGH
-**	
-**	Permission is granted to use, modify and redistribute this software.
-**	Modified versions of this software MUST be marked as such.
-**	
-**	This software is provided "AS IS". In no event shall
-**	the authors or copyright holders be liable for any claim,
-**	damages or other liability. The above copyright notice
-**	and this permission notice shall be included in all copies
-**	or substantial portions of the software.
-**	
-**	File created on: 17/11/2015
-*/
-
-#include "transform.h"
-#include <utility>
+#include "Utils.hpp"
 
 namespace Lua {
     invalid_lua_arg::invalid_lua_arg(lua_State* state, int id, std::string what)
@@ -22,6 +7,9 @@ namespace Lua {
     {
         if(what.empty())
         {
+			// Just to reserve enough memory to avoid reallocations...
+			what.reserve(sizeof("Invalid argument: 999!"));
+			
             what = "Invalid argument: ";
             what += std::to_string(m_which);
             what += "!";

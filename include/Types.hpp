@@ -1,5 +1,19 @@
-#ifndef TYPES_H
-#define TYPES_H
+/*	Copyright (c) 2023 Mauro Grassia
+**	
+**	Permission is granted to use, modify and redistribute this software.
+**	Modified versions of this software MUST be marked as such.
+**	
+**	This software is provided "AS IS". In no event shall
+**	the authors or copyright holders be liable for any claim,
+**	damages or other liability. The above copyright notice
+**	and this permission notice shall be included in all copies
+**	or substantial portions of the software.
+**	
+*/
+
+#ifndef LUAPP_TYPES_HPP
+#define LUAPP_TYPES_HPP
+
 #include <string>
 #include <vector>
 #include <functional>
@@ -7,10 +21,10 @@
 #include <memory>
 #include <type_traits>
 #include <cstring>
-#include "luainclude.h"
-#include "fwd.h"
-#include "library.h"
-#include "util.h"
+#include "LuaInclude.hpp"
+#include "FwdDecl.hpp"
+#include "MetatableManager.h"
+#include "Utils.hpp"
 
 namespace Lua {
     namespace impl {
@@ -97,8 +111,6 @@ namespace Lua {
         Arg& operator= (Arg const&) =default;
         Arg& operator= (Arg&&) =default;
         
-        // Lua::Nil
-        Arg(nil_t const&) {}
         explicit Arg(T const& data)
             : m_data(std::make_shared<T>(data)) {}
         explicit Arg(std::shared_ptr<T> data) : m_data(std::move(data)) {}
@@ -146,7 +158,6 @@ namespace Lua {
     Arg<T> RefToArg(T& ref) {
         return Arg<T>::ToReference(ref);
     }
-    extern Arg<nil_t> NilArg;
 
     template <typename T>
     struct Map {
@@ -169,4 +180,4 @@ namespace Lua {
         Array& operator= (Array&&) =default;
     };
 }
-#endif // TYPES_H
+#endif

@@ -1,9 +1,24 @@
-#ifndef UTIL_H
-#define UTIL_H
+/*	Copyright (c) 2023 Mauro Grassia
+**	
+**	Permission is granted to use, modify and redistribute this software.
+**	Modified versions of this software MUST be marked as such.
+**	
+**	This software is provided "AS IS". In no event shall
+**	the authors or copyright holders be liable for any claim,
+**	damages or other liability. The above copyright notice
+**	and this permission notice shall be included in all copies
+**	or substantial portions of the software.
+**	
+*/
+
+#ifndef LUAPP_UTILS_HPP
+#define LUAPP_UTILS_HPP
+
 #include <exception>
 #include <string>
 #include <functional>
-#include "luainclude.h"
+
+#include "LuaInclude.hpp"
 
 namespace Lua {
     class lua_exception : public std::exception {
@@ -69,27 +84,36 @@ namespace Lua {
     template <typename T> struct TupleDecay<T&&> {
         typedef T type;
     };
-
-    namespace Caller {
-        // Currently, it's only being set in Lua::impl::TransformFunction.
-        extern thread_local lua_State* running_state;
-    }
-
-    // ToFnc
-    namespace impl {
-        template <typename> struct ClassFunctor;
-        template <typename RV, typename Class, typename ... Args>
-        struct ClassFunctor<RV(Class::*)(Args...) const> {
-            typedef std::function<RV(Args...)> type;
-        };
-    }
-    template <typename T>
-    typename impl::ClassFunctor<decltype(&T::operator())>::type ToFnc(T const& f)
-    {
-        return f;
-    }
-
-    struct nil_t {};
-    extern nil_t const nil;
+	
+	namespace impl {
+		template <typename...> struct VerifyVarArgs;
+		template <> struct VerifyVarArgs<> {
+			static constexpr void test() {}
+		};
+		template <> struct VerifyVarArgs<lua_Integer> {
+			static constexpr void test() {}
+		};
+		template <> struct VerifyVarArgs<lua_Number> {
+			static constexpr void test() {}
+		};
+		template <> struct VerifyVarArgs<int> {
+			static constexpr void test() {}
+		};
+		template <> struct VerifyVarArgs<char> {
+			static constexpr void test() {}
+		};
+		template <size_t N> struct VerifyVarArgs<char(&)[N]> {
+			static constexpr void test() {}
+		};
+		template <size_t N> struct VerifyVarArgs<char const(&)[N]> {
+			static constexpr void test() {}
+		};
+		template <typename T, typename U, typename ... Args> struct VerifyVarArgs<T, U, Args...> {
+			static constexpr void test() {
+				VerifyVarArgs<T>::test();
+				VerifyVarArgs<U, Args...>::test();
+			}
+		};
+	}
 }
-#endif // UTIL_H
+#endif

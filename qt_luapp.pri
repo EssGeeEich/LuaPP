@@ -3,23 +3,25 @@ include(qt_lua.pri)
 INCLUDEPATH += $$PWD/include
 
 SOURCES += \
-	$$PWD/src/reference.cpp \
-	$$PWD/src/state.cpp \
-	$$PWD/src/typeext.cpp \
-	$$PWD/src/variable.cpp \
-    $$PWD/src/library.cpp \
-    $$PWD/src/util.cpp
+	$$PWD/src/Functor.cpp \
+	$$PWD/src/Reference.cpp \
+	$$PWD/src/State.cpp \
+	$$PWD/src/StateFunctions.cpp \
+	$$PWD/src/StateManager.cpp \
+	$$PWD/src/Utils.cpp
 
 HEADERS += \
-	$$PWD/include/enums.h \
-	$$PWD/include/library.h \
-	$$PWD/include/luainclude.h \
-	$$PWD/include/reference.h \
-	$$PWD/include/state.h \
-	$$PWD/include/transform.h \
-	$$PWD/include/variable.h \
-    $$PWD/include/util.h \
-    $$PWD/include/types.h \
-    $$PWD/include/type_parser.h \
-    $$PWD/include/fwd.h
+	$$PWD/include/Enums.hpp \
+	$$PWD/include/Functor.hpp \
+	$$PWD/include/FwdDecl.hpp \
+	$$PWD/include/LuaInclude.hpp \
+	$$PWD/include/LuaPP.hpp \
+	$$PWD/include/MetatableManager.h \
+	$$PWD/include/Reference.h \
+	$$PWD/include/State.hpp \
+	$$PWD/include/StateManager.hpp \
+	$$PWD/include/Transform.hpp \
+	$$PWD/include/TypeParser.hpp \
+	$$PWD/include/Types.hpp \
+	$$PWD/include/Utils.hpp
 	

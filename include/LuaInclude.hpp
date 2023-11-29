@@ -1,4 +1,4 @@
-/*	Copyright (c) 2015 SGH
+/*	Copyright (c) 2023 Mauro Grassia
 **	
 **	Permission is granted to use, modify and redistribute this software.
 **	Modified versions of this software MUST be marked as such.
@@ -9,13 +9,23 @@
 **	and this permission notice shall be included in all copies
 **	or substantial portions of the software.
 **	
-**	File created on: 15/11/2015
 */
 
-#include "reference.h"
+#ifndef LUAPP_LUAINCLUDE_HPP
+#define LUAPP_LUAINCLUDE_HPP
 
-namespace Lua {
-	Reference::Reference(int refKey) : m_referenceKey(refKey) {}
-	Reference::operator bool() const noexcept { return (m_referenceKey != LUA_REFNIL) && (m_referenceKey != LUA_NOREF); }
-	int Reference::key() const noexcept { return m_referenceKey; }
+extern "C" {
+
+#if USE_SYSTEM_LUA
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+#else
+#include "dep/lua/lua.h"
+#include "dep/lua/lualib.h"
+#include "dep/lua/lauxlib.h"
+#endif
+
 }
+
+#endif
