@@ -79,6 +79,7 @@ namespace Lua {
 		tagged(0,0,-)					lua_CFunction atpanic(lua_CFunction);
 		tagged(nargs+1,nresults,e)		void call(int =0, int =0, int =0, lua_KFunction =nullptr);
 		tagged(0,0,-)					int checkstack(int);
+		tagged(0,?,-)					int closethread(lua_State*);
 		tagged(0,0,e)					int compare(int,int,CompareOp);
 		tagged(n,1,e)					void concat(int);
 		tagged(0,0,-)					void copy(int,int);

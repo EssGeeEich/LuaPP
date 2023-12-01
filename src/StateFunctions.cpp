@@ -7,6 +7,7 @@ void State::arith(Operator op) { return lua_arith(GetState(),static_cast<int>(op
 lua_CFunction State::atpanic(lua_CFunction f) { return lua_atpanic(GetState(),f); }
 void State::call(int a, int b, int c, lua_KFunction d) { return lua_callk(GetState(),a,b,c,d); }
 int State::checkstack(int v) { return lua_checkstack(GetState(),v); }
+int State::closethread(lua_State* a) { return lua_closethread(GetState(),a); }
 int State::compare(int a, int b, CompareOp c) { return lua_compare(GetState(),a,b,static_cast<int>(c)); }
 void State::concat(int v) { return lua_concat(GetState(),v); }
 void State::copy(int a, int b) { return lua_copy(GetState(),a,b); }
