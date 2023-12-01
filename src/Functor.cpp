@@ -1,5 +1,8 @@
 #include "Functor.hpp"
 #include "Utils.hpp"
+#include "StateManager.hpp"
+#include "State.hpp"
+#include <memory>
 
 namespace Lua::impl {
 
@@ -14,22 +17,25 @@ int Functor::RegisterMetatable(lua_State* state)
 	return 0;
 }
 
-int Functor::Call(lua_State* state)
-{
-	functor_type* p = (functor_type*)(luaL_checkudata(state,1,"luapp_functor"));
+int Functor::Call(lua_State* s)
+{	
+	std::shared_ptr<Lua::State> state = Lua::StateManager::Get().Find(s);
+	if(!state)
+		return 0;
+	
+	functor_type* p = (functor_type*)(state->checkudata(1,"luapp_functor"));
 	if(!p || !(*p))
 		return 0;
-	int rv = 0;
+	
 	try {
-		rv = (*p)(state);
+		return (*p)(*state);
 	} catch(lua_exception& e) {
-		return luaL_error(state,"C++ / Lua Exception: %s",e.what());
+		return state->error("C++ / Lua Exception: %s", e.what());
 	} catch(std::exception& e) {
-		return luaL_error(state,"C++ Exception: %s",e.what());
+		return state->error("C++ Exception: %s", e.what());
 	} catch(...) {
-		return luaL_error(state,"Unknown C++ Exception thrown.");
+		return state->error("Unknown C++ Exception thrown.");
 	}
-	return rv;
 }
 
 int Functor::Destroy(lua_State* state)

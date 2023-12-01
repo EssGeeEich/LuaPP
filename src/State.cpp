@@ -75,7 +75,7 @@ void State::luapp_destroy_reference(Reference* reference) {
 		return;
 	unref(reference->table(),reference->key());
 }
-int State::luapp_push_translated_function(std::function<int (lua_State *)> const& function) {
+int State::luapp_push_translated_function(std::function<int (Lua::State&)> const& function) {
 	return impl::Functor::Push(GetState(), function);
 }
 

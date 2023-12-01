@@ -14,11 +14,9 @@
 #ifndef LUAPP_UTILS_HPP
 #define LUAPP_UTILS_HPP
 
+#include "LuaInclude.hpp"
 #include <exception>
 #include <string>
-#include <functional>
-
-#include "LuaInclude.hpp"
 
 namespace Lua {
     class lua_exception : public std::exception {
@@ -100,6 +98,12 @@ namespace Lua {
 			static constexpr void test() {}
 		};
 		template <> struct VerifyVarArgs<char> {
+			static constexpr void test() {}
+		};
+		template <> struct VerifyVarArgs<char*> {
+			static constexpr void test() {}
+		};
+		template <> struct VerifyVarArgs<char const*> {
 			static constexpr void test() {}
 		};
 		template <size_t N> struct VerifyVarArgs<char(&)[N]> {

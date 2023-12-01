@@ -16,12 +16,11 @@ HEADERS += \
 	$$PWD/include/FwdDecl.hpp \
 	$$PWD/include/LuaInclude.hpp \
 	$$PWD/include/LuaPP.hpp \
-	$$PWD/include/MetatableManager.h \
-	$$PWD/include/Reference.h \
+	$$PWD/include/MetatableManager.hpp \
+	$$PWD/include/Reference.hpp \
 	$$PWD/include/State.hpp \
 	$$PWD/include/StateManager.hpp \
 	$$PWD/include/Transform.hpp \
-	$$PWD/include/TypeParser.hpp \
-	$$PWD/include/Types.hpp \
+	$$PWD/include/TypeConverter.hpp \
 	$$PWD/include/Utils.hpp
 	

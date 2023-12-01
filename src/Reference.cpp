@@ -1,4 +1,4 @@
-#include "Reference.h"
+#include "Reference.hpp"
 #include "State.hpp"
 
 namespace Lua {

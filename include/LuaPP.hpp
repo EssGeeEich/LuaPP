@@ -11,17 +11,14 @@
 **	
 */
 
-#ifndef LUAPP_FWDDECL_HPP
-#define LUAPP_FWDDECL_HPP
-#include "Enums.hpp"
+#ifndef LUAPP_HPP
+#define LUAPP_HPP
+
+#include "FwdDecl.hpp"
 #include "LuaInclude.hpp"
+#include "State.hpp"
+#include "StateManager.hpp"
+#include "Transform.hpp"
+#include "TypeConverter.hpp"
 
-template <typename T> struct MetatableDescriptor;
-
-namespace Lua {
-    class Reference;
-    class State;
-	class StateManager;
-    template <typename> struct TypeConverter;
-}
 #endif

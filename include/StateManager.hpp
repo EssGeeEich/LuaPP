@@ -11,17 +11,29 @@
 **	
 */
 
-#ifndef LUAPP_FWDDECL_HPP
-#define LUAPP_FWDDECL_HPP
-#include "Enums.hpp"
-#include "LuaInclude.hpp"
+#ifndef LUAPP_STATEMANAGER_HPP
+#define LUAPP_STATEMANAGER_HPP
 
-template <typename T> struct MetatableDescriptor;
+#include "FwdDecl.hpp"
+#include <vector>
+#include <map>
+#include <memory>
 
 namespace Lua {
-    class Reference;
-    class State;
-	class StateManager;
-    template <typename> struct TypeConverter;
+
+class StateManager {
+public:
+	static StateManager& Get();
+	std::shared_ptr<Lua::State> Create();
+	std::shared_ptr<Lua::State> Find(lua_State*);
+	
+private:
+	void Cleanup();
+	StateManager();
+	
+	std::map<lua_State*, std::weak_ptr<Lua::State>> m_states;
+};
+
 }
+
 #endif

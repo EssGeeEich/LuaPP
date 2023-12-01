@@ -11,17 +11,25 @@
 **	
 */
 
-#ifndef LUAPP_FWDDECL_HPP
-#define LUAPP_FWDDECL_HPP
-#include "Enums.hpp"
-#include "LuaInclude.hpp"
+#ifndef LUAPP_FUNCTOR_HPP
+#define LUAPP_FUNCTOR_HPP
 
-template <typename T> struct MetatableDescriptor;
+#include "FwdDecl.hpp"
+#include <functional>
 
-namespace Lua {
-    class Reference;
-    class State;
-	class StateManager;
-    template <typename> struct TypeConverter;
+namespace Lua::impl {
+
+class Functor {
+	friend class State;
+	static int RegisterMetatable(lua_State*);
+	static int Call(lua_State*);
+	static int Destroy(lua_State*);
+	typedef std::function<int(Lua::State&)> functor_type;
+public:
+	static void Register(lua_State*);
+	static int Push(lua_State*, functor_type);
+};
+
 }
+
 #endif
