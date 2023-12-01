@@ -1,0 +1,375 @@
+/*	Copyright (c) 2023 Mauro Grassia
+**	
+**	Permission is granted to use, modify and redistribute this software.
+**	Modified versions of this software MUST be marked as such.
+**	
+**	This software is provided "AS IS". In no event shall
+**	the authors or copyright holders be liable for any claim,
+**	damages or other liability. The above copyright notice
+**	and this permission notice shall be included in all copies
+**	or substantial portions of the software.
+**	
+*/
+
+#ifndef LUAPP_TYPEPARSER_HPP
+#define LUAPP_TYPEPARSER_HPP
+
+#include "FwdDecl.hpp"
+#include "State.hpp"
+#include "StateManager.hpp"
+
+#include <optional>
+#include <string>
+#include <vector>
+#include <deque>
+#include <list>
+#include <map>
+
+namespace Lua {
+    namespace impl {
+        template <typename T> struct IntegerConverter {
+            typedef typename std::enable_if<std::is_integral<T>::value, std::optional<T> >::type Arg;
+            static Arg Read(Lua::State& s, int id) {
+                if(s.isinteger(id))
+                {
+                    int rv = 0;
+                    lua_Integer i = s.tointegerx(id, &rv);
+                    if(!rv)
+                        return std::nullopt;
+                    return static_cast<T>(i);
+                }
+                else if(s.isnumber(id))
+                {
+                    int rv = 0;
+                    lua_Number i = s.tonumberx(id, &rv);
+                    if(!rv)
+                        return std::nullopt;
+                    return static_cast<T>(i);
+                }
+                return std::nullopt;
+            }
+            static std::size_t Push(Lua::State& s, T v) {
+                s.pushinteger(static_cast<lua_Integer>(v));
+                return 1;
+            }
+            static std::string Name() {
+                return "integer";
+            }
+        };
+        template <typename T> struct NumberConverter {
+            typedef typename std::enable_if<std::is_floating_point<T>::value, std::optional<T> >::type Arg;
+            static Arg Read(Lua::State& s, int id) {
+                if(s.isnumber(id))
+                {
+                    int rv = 0;
+                    lua_Number i = s.tonumberx(id, &rv);
+                    if(!rv)
+                        return std::nullopt;
+                    return static_cast<T>(i);
+                }
+                else if(s.isinteger(id))
+                {
+                    int rv = 0;
+                    lua_Integer i = s.tointegerx(id, &rv);
+                    if(!rv)
+                        return std::nullopt;
+                    return static_cast<T>(i);
+                }
+                return std::nullopt;
+            }
+            static std::size_t Push(Lua::State& s, T v) {
+                s.pushnumber(static_cast<lua_Number>(v));
+                return 1;
+            }
+            static std::string Name() {
+                return "number";
+            }
+        };
+    }
+
+    // For classes with a metatype
+    template <typename T> struct TypeConverter {
+        typedef Lua::impl::MetatableDescriptorImpl<typename std::remove_cv<typename std::remove_pointer<T>::type>::type> metatable;
+        typedef std::optional<T> Arg;
+		
+        static Arg Read(Lua::State& s, int id) {
+            T p = reinterpret_cast<T>(s.checkudata(id, metatable::name()));
+            if(!p)
+                return std::nullopt;
+
+            return p;
+        }
+        static std::string Name() {
+            return metatable::name();
+        }
+        static std::size_t Push(Lua::State& s, T&& v) {
+            s.luapp_move_object<T>(std::move(v));
+            return 1;
+        }
+    };
+
+    // void
+    template <> struct TypeConverter<void> {};
+	
+	class ManualReturnValues {
+		std::size_t m_values;
+	public:
+		inline ManualReturnValues(std::size_t values)
+			: m_values(values) {}
+		inline std::size_t count() const {
+			return m_values;
+		}
+	};
+	
+	template <> struct TypeConverter<ManualReturnValues> {
+		static std::size_t Push(Lua::State&, ManualReturnValues const& mrv) {
+			return mrv.count();
+		}
+	};
+	
+	template <> struct TypeConverter<std::shared_ptr<Reference>> {
+		typedef std::shared_ptr<Reference> Arg;
+		static Arg Read(Lua::State& s, int id) {
+			return s.luapp_read_reference(id);
+		}
+		static std::size_t Push(Lua::State& s, Arg const& reference) {
+			s.luapp_push_reference(reference);
+			return 1;
+		}
+		static std::string Name() {
+			return "reference";
+		}
+	};
+    
+    // std::string
+    template <> struct TypeConverter<std::string> {
+        typedef std::optional<std::string> Arg;
+        static Arg Read(Lua::State& s, int id) {
+            if(!s.isstring(id))
+                return std::nullopt;
+			
+            size_t size = 0;
+            char const* str = s.tolstring(id, &size);
+            if(!str)
+                return std::nullopt;
+            return std::string(str, size);
+        }
+        static std::size_t Push(Lua::State& s, std::string const& v) {
+            s.pushlstring(v.c_str(), v.size());
+            return 1;
+        }
+        static std::string Name() {
+            return "string";
+        }
+    };
+
+    template <> struct TypeConverter<bool> {
+        typedef std::optional<bool> Arg;
+        static Arg Read(Lua::State& s, int id) {
+            return s.toboolean(id) != 0;
+        }
+        static std::size_t Push(Lua::State& s, bool v) {
+            s.pushboolean(v);
+            return 1;
+        }
+        static std::string Name() {
+            return "boolean";
+        }
+    };
+
+    template <> struct TypeConverter<unsigned short> : public impl::IntegerConverter<unsigned short>{};
+    template <> struct TypeConverter<unsigned int> : public impl::IntegerConverter<unsigned int>{};
+    template <> struct TypeConverter<unsigned long> : public impl::IntegerConverter<unsigned long>{};
+    template <> struct TypeConverter<unsigned long long> : public impl::IntegerConverter<unsigned long long>{};
+    template <> struct TypeConverter<short> : public impl::IntegerConverter<short>{};
+    template <> struct TypeConverter<int> : public impl::IntegerConverter<int>{};
+    template <> struct TypeConverter<long> : public impl::IntegerConverter<long>{};
+    template <> struct TypeConverter<long long> : public impl::IntegerConverter<long long>{};
+
+    template <> struct TypeConverter<float> : public impl::NumberConverter<float>{};
+    template <> struct TypeConverter<double> : public impl::NumberConverter<double>{};
+    template <> struct TypeConverter<long double> : public impl::NumberConverter<long double>{};
+    
+    template <typename T> struct TypeConverter<std::vector<T>> {
+        typedef std::optional<std::vector<T>> Arg;
+        static Arg Read(Lua::State& s, int id) {
+            if(!s.istable(id))
+                return std::nullopt;
+			
+            std::vector<T> v;
+            for(int i = 1; ; ++i)
+            {
+				s.pushinteger(i);
+                if(!s.next(id))
+                    break;
+                std::optional<T> argt = TypeConverter<T>::Read(s, s.absindex(-1));
+                if(!argt)
+                    break;
+                v.m_data.emplace_back(std::move(*argt));
+				s.pop(2);
+            }
+            return std::move(v);
+        }
+        static std::size_t Push(lua_State* s, std::vector<T> const& v) {
+            int const top = s.gettop();
+			
+            s.createtable(v.m_data.size(), 0);
+            for(std::size_t i = 0; i < v.m_data.size(); ++i) {
+				size_t const pushedValues = TypeConverter<T>::Push(s, v.m_data[i]);
+				
+				if(!pushedValues)
+					continue;
+				else if(pushedValues > 1)
+                {
+                    s.settop(top);
+                    throw lua_exception("Lua::Array Push: An argument is taking multiple spots in the stack.");
+                }
+				
+                s.rawseti(-2, i + 1);
+            }
+            return 1;
+        }
+        static std::string Name() {
+            return TypeConverter<T>::Name() + " vector";
+        }
+    };
+	
+	template <typename T> struct TypeConverter<std::deque<T>> {
+        typedef std::optional<std::deque<T>> Arg;
+        static Arg Read(Lua::State& s, int id) {
+            if(!s.istable(id))
+                return std::nullopt;
+			
+            std::deque<T> v;
+            for(int i = 1; ; ++i)
+            {
+				s.pushinteger(i);
+                if(!s.next(id))
+                    break;
+                std::optional<T> argt = TypeConverter<T>::Read(s, s.absindex(-1));
+                if(!argt)
+                    break;
+                v.m_data.emplace_back(std::move(*argt));
+				s.pop(2);
+            }
+            return std::move(v);
+        }
+        static std::size_t Push(Lua::State& s, std::deque<T> const& v) {
+            int const top = s.gettop();
+			
+            s.createtable(v.m_data.size(), 0);
+            for(std::size_t i = 0; i < v.m_data.size(); ++i) {
+				size_t const pushedValues = TypeConverter<T>::Push(s, v.m_data[i]);
+				
+				if(!pushedValues)
+					continue;
+				else if(pushedValues > 1)
+                {
+                    s.settop(top);
+                    throw lua_exception("Lua::Array Push: An argument is taking multiple spots in the stack.");
+                }
+				
+                s.rawseti(-2, i + 1);
+            }
+            return 1;
+        }
+        static std::string Name() {
+            return TypeConverter<T>::Name() + " deque";
+        }
+    };
+	
+	template <typename T> struct TypeConverter<std::list<T>> {
+        typedef std::optional<std::list<T>> Arg;
+        static Arg Read(Lua::State& s, int id) {
+            if(!s.istable(id))
+                return std::nullopt;
+			
+            std::list<T> v;
+            for(int i = 1; ; ++i)
+            {
+				s.pushinteger(i);
+                if(!s.next(id))
+                    break;
+                std::optional<T> argt = TypeConverter<T>::Read(s, s.absindex(-1));
+                if(!argt)
+                    break;
+                v.m_data.emplace_back(std::move(*argt));
+				s.pop(2);
+            }
+            return std::move(v);
+        }
+        static std::size_t Push(Lua::State& s, std::list<T> const& v) {
+            int const top = s.gettop();
+			
+            s.createtable(v.m_data.size(), 0);
+            for(std::size_t i = 0; i < v.m_data.size(); ++i) {
+				size_t const pushedValues = TypeConverter<T>::Push(s, v.m_data[i]);
+				
+				if(!pushedValues)
+					continue;
+				else if(pushedValues > 1)
+                {
+                    s.settop(top);
+                    throw lua_exception("Lua::Array Push: An argument is taking multiple spots in the stack.");
+                }
+				
+                s.rawseti(-2, i + 1);
+            }
+            return 1;
+        }
+        static std::string Name() {
+            return TypeConverter<T>::Name() + " list";
+        }
+    };
+
+    template <typename TKey, typename TValue> struct TypeConverter<std::map<TKey, TValue>> {
+        typedef std::optional<std::map<TKey, TValue>> Arg;
+		
+        static Arg Read(Lua::State& s, int id) {
+            if(!s.istable(id))
+                return std::nullopt;
+			
+            std::map<TKey, TValue> m;
+            for(s.pushnil(); s.next(id); s.pop(1))
+            {
+				std::optional<TKey> key = TypeConverter<TKey>::Read(s, s.absindex(-2));
+                if(!key)
+                    continue;
+				std::optional<TValue> value = TypeConverter<TValue>::Read(s, s.absindex(-1));
+				if(!value)
+					continue;
+				m.emplace(std::make_pair(std::move(*key), std::move(*value)));
+            }
+			
+            return std::move(m);
+        }
+        static size_t Push(Lua::State& s, std::map<TKey, TValue> const& v) {
+            s.createtable(0, v.m_data.size());
+			
+			int const top = s.gettop();
+            for(auto it = v.m_data.begin(); it != v.m_data.end(); ++it)
+            {
+                size_t const keyPushedValues = TypeConverter<TKey>::Push(s, it->first);
+				if(!keyPushedValues || keyPushedValues > 1) {
+                    s.settop(top);
+					continue;
+                }
+				
+				size_t const valPushedValues = TypeConverter<TValue>::Push(s, it->second);
+				if(!valPushedValues || valPushedValues > 1) {
+					s.settop(top);
+					continue;
+				}
+				
+                s.settable(-3);
+            }
+			
+            return 1;
+        }
+        static std::string Name() {
+            return TypeConverter<TKey>::Name() + "->" + TypeConverter<TValue>::name() + " table";
+        }
+    };
+}
+
+#endif
