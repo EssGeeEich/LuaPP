@@ -1,4 +1,4 @@
-Copyright (c) 2015 EssGeeEich (also called as SGH throughout the software files)
+Copyright (c) 2015-2023 Mauro Grassia
 
     Permission is granted to use, modify and redistribute this software.
     Modified versions of this software MUST be marked as such.
