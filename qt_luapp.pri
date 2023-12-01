@@ -24,3 +24,4 @@ HEADERS += \
 	$$PWD/include/TypeConverter.hpp \
 	$$PWD/include/Utils.hpp
 	
+DEFINES += LUAPP_NO_MAIN_CPP

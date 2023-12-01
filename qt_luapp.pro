@@ -6,3 +6,5 @@ SOURCES += \
 	$$PWD/src/main.cpp
 
 include(qt_luapp.pri)
+
+DEFINES -= LUAPP_NO_MAIN_CPP

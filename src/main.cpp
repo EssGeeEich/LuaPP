@@ -1,4 +1,4 @@
-/*	Copyright (c) 2015 SGH
+/*	Copyright (c) 2023 Mauro Grassia
 **	
 **	Permission is granted to use, modify and redistribute this software.
 **	Modified versions of this software MUST be marked as such.
@@ -9,8 +9,9 @@
 **	and this permission notice shall be included in all copies
 **	or substantial portions of the software.
 **	
-**	File created on: 15/11/2015
 */
+
+#ifndef LUAPP_NO_MAIN_CPP
 
 #include "LuaPP.hpp"
 #include <iostream>
@@ -183,3 +184,5 @@ clone:RunCallback();
 
 	return 0;
 }
+
+#endif
