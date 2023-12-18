@@ -96,7 +96,7 @@ namespace Lua {
 						
 						std::size_t const argsRead = TupleArgumentReader<sizeof...(TFncArgs), functionArguments>::Read(state, argPadding, arguments) - 3;
 						int const argsGiven = state.gettop() - 2;
-						if(argsGiven > argsRead)
+						if(argsGiven > static_cast<int>(argsRead))
 							throw lua_exception(std::string("Too many arguments provided. Read: ") + std::to_string(argsRead) + ", Given: " + std::to_string(argsGiven));
 					}
 					
@@ -119,7 +119,7 @@ namespace Lua {
 		template <typename C, typename RT, typename ...Args> struct DeductFunction<RT (C::*)(Args...) const> { using type = std::function<RT(C const*, Args...)>; };
 		template <typename C, typename RT, typename ...Args> struct DeductFunction<RT (C::*)(Args...)> { using type = std::function<RT(C*, Args...)>; };
 		template <typename T> struct DeductFunction<std::function<T>> { using type = std::function<T>; };
-		template <typename T> struct DeductFunction : public DeductFunction<decltype(&T::operator())> {};
+		// template <typename T> struct DeductFunction<T> : public DeductFunction<decltype(&T::operator())> {};
 		
 		template <typename F>
 		auto deductFunction(F f) -> typename DeductFunction<F>::type { return {f}; }
@@ -128,6 +128,13 @@ namespace Lua {
 	template <typename T>
 	inline std::function<int(Lua::State&)> Transform(T fnc) {
 		return impl::Transform(impl::deductFunction<T>(fnc));
+	}
+
+	template <typename TClass, typename TRetVal, typename ...TArgs>
+	inline std::function<int(Lua::State&)> Transform(TRetVal (TClass::*fptr)(TArgs...), TClass* instance) {
+		return impl::Transform(std::function<TRetVal(TArgs...)>([fptr,instance](TArgs... args) -> TRetVal {
+			return ((*instance).*fptr)(std::forward<TArgs>(args)...);
+		}));
 	}
 }
 

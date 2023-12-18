@@ -3,12 +3,12 @@ include(qt_lua.pri)
 INCLUDEPATH += $$PWD/include
 
 SOURCES += \
-	$$PWD/src/Functor.cpp \
-	$$PWD/src/Reference.cpp \
-	$$PWD/src/State.cpp \
-	$$PWD/src/StateFunctions.cpp \
-	$$PWD/src/StateManager.cpp \
-	$$PWD/src/Utils.cpp
+	$$PWD/src/LuaPP_Functor.cpp \
+	$$PWD/src/LuaPP_Reference.cpp \
+	$$PWD/src/LuaPP_State.cpp \
+	$$PWD/src/LuaPP_StateFunctions.cpp \
+	$$PWD/src/LuaPP_StateManager.cpp \
+	$$PWD/src/LuaPP_Utils.cpp
 
 HEADERS += \
 	$$PWD/include/Enums.hpp \

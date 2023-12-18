@@ -24,6 +24,7 @@
 #include <deque>
 #include <list>
 #include <map>
+#include <any>
 
 namespace Lua {
     namespace impl {
@@ -103,7 +104,10 @@ namespace Lua {
             return metatable::name();
         }
         static std::size_t Push(Lua::State& s, T&& v) {
-            s.luapp_move_object<T>(std::move(v));
+			if(v)
+				s.luapp_move_object<T>(std::move(v));
+			else
+				s.pushnil();
             return 1;
         }
     };
@@ -114,7 +118,7 @@ namespace Lua {
 	class ManualReturnValues {
 		std::size_t m_values;
 	public:
-		inline ManualReturnValues(std::size_t values)
+		explicit inline ManualReturnValues(std::size_t values)
 			: m_values(values) {}
 		inline std::size_t count() const {
 			return m_values;
@@ -127,8 +131,8 @@ namespace Lua {
 		}
 	};
 	
-	template <> struct TypeConverter<std::shared_ptr<Reference>> {
-		typedef std::shared_ptr<Reference> Arg;
+	template <> struct TypeConverter<ReferenceType> {
+		typedef ReferenceType Arg;
 		static Arg Read(Lua::State& s, int id) {
 			return s.luapp_read_reference(id);
 		}
@@ -140,13 +144,79 @@ namespace Lua {
 			return "reference";
 		}
 	};
+
+	template <Lua::Type type>
+	struct TypeCheckedReference {
+		ReferenceType reference;
+	};
+
+	template <Lua::Type type> struct TypeConverter<TypeCheckedReference<type>> {
+		typedef TypeCheckedReference<type> Arg;
+		static Arg Read(Lua::State& s, int id) {
+			if(s.type(id) != type)
+				return Arg();
+			Arg rv;
+			rv.reference = TypeConverter<ReferenceType>::Read(s, id);
+			return rv;
+		}
+		static std::size_t Push(Lua::State& s, Arg const& reference) {
+			return TypeConverter<ReferenceType>::Push(s, reference.reference);
+		}
+		static std::string Name() {
+			std::string strType;
+			switch(type) {
+			case TP_NONE:
+				strType = "typeless";
+				break;
+			case TP_NIL:
+				strType = "nil";
+				break;
+			case TP_BOOL:
+				strType = "bool";
+				break;
+			case TP_LIGHTUSERDATA:
+				strType = "lightuserdata";
+				break;
+			case TP_NUMBER:
+				strType = "number";
+				break;
+			case TP_STRING:
+				strType = "string";
+				break;
+			case TP_TABLE:
+				strType = "table";
+				break;
+			case TP_FUNCTION:
+				strType = "function";
+				break;
+			case TP_USERDATA:
+				strType = "userdata";
+				break;
+			case TP_THREAD:
+				strType = "thread";
+				break;
+			default:
+				strType = "unknown";
+				break;
+			}
+
+			return strType + " reference";
+		}
+	};
     
     // std::string
     template <> struct TypeConverter<std::string> {
         typedef std::optional<std::string> Arg;
         static Arg Read(Lua::State& s, int id) {
-            if(!s.isstring(id))
+			if(!s.isstring(id)) {
+				if(s.isnumber(id))
+					return std::to_string(s.tonumber(id));
+				else if(s.isinteger(id))
+					return std::to_string(s.tointeger(id));
+				else if(s.isboolean(id))
+					return s.toboolean(id) ? "true" : "false";
                 return std::nullopt;
+			}
 			
             size_t size = 0;
             char const* str = s.tolstring(id, &size);
@@ -329,18 +399,24 @@ namespace Lua {
             if(!s.istable(id))
                 return std::nullopt;
 			
+			s.pushvalue(id);
+			s.pushnil();
+
             std::map<TKey, TValue> m;
-            for(s.pushnil(); s.next(id); s.pop(1))
-            {
-				std::optional<TKey> key = TypeConverter<TKey>::Read(s, s.absindex(-2));
+			while(s.next(-2)) {
+				s.pushvalue(-2);
+
+				std::optional<TKey> key = TypeConverter<TKey>::Read(s, s.absindex(-1));
                 if(!key)
                     continue;
-				std::optional<TValue> value = TypeConverter<TValue>::Read(s, s.absindex(-1));
+				std::optional<TValue> value = TypeConverter<TValue>::Read(s, s.absindex(-2));
 				if(!value)
 					continue;
 				m.emplace(std::make_pair(std::move(*key), std::move(*value)));
+				s.pop(2);
             }
-			
+			s.pop(1);
+
             return std::move(m);
         }
         static size_t Push(Lua::State& s, std::map<TKey, TValue> const& v) {
@@ -370,6 +446,60 @@ namespace Lua {
             return TypeConverter<TKey>::Name() + "->" + TypeConverter<TValue>::name() + " table";
         }
     };
+
+	template <> struct TypeConverter<std::any> {
+		typedef std::any Arg;
+	public:
+		static Arg Read(Lua::State& s, int id) {
+			switch(s.type(id)) {
+			case Lua::TP_BOOL:
+				return s.toboolean(id);
+			case Lua::TP_NUMBER:
+				{
+					if(s.isinteger(id))
+						return s.tointeger(id);
+					else
+						return s.tonumber(id);
+				}
+				return s.tonumber(id);
+			case Lua::TP_STRING:
+				{
+					size_t size = 0;
+					char const* str = s.tolstring(id, &size);
+					if(!str)
+						return std::nullopt;
+					return std::string(str, size);
+				}
+			case Lua::TP_TABLE:
+				{
+					s.pushvalue(id);
+					s.pushnil();
+
+					std::map<std::string, std::any> m;
+					while(s.next(-2)) {
+						s.pushvalue(-2);
+
+						std::optional<std::string> key = TypeConverter<std::string>::Read(s, s.absindex(-1));
+						if(!key)
+							continue;
+
+						std::any value = TypeConverter<std::any>::Read(s, s.absindex(-2));
+						m.emplace(std::make_pair(std::move(*key), std::move(value)));
+						s.pop(2);
+					}
+					s.pop(1);
+
+					return std::move(m);
+				}
+			default:
+				return TypeConverter<ReferenceType>::Read(s, id);
+			}
+		}
+
+		static std::string Name() {
+			return "std::any";
+		}
+	};
 }
 
 #endif

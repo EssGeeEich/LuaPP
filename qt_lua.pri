@@ -1,4 +1,4 @@
-INCLUDEPATH += $$PWD/dep/lua
+INCLUDEPATH += $$PWD
 
 HEADERS += \
 	$$PWD/dep/lua/lapi.h \

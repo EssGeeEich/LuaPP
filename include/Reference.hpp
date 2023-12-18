@@ -45,5 +45,7 @@ namespace Lua {
 		int m_refTable;
 		int m_refKey;
 	};
+
+	typedef std::shared_ptr<Reference> ReferenceType;
 }
 #endif

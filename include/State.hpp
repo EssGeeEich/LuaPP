@@ -14,6 +14,7 @@
 #ifndef LUAPP_STATE_HPP
 #define LUAPP_STATE_HPP
 #include <memory>
+#include <optional>
 
 #include "LuaInclude.hpp"
 #include "FwdDecl.hpp"
@@ -55,10 +56,10 @@ namespace Lua {
 		tagged(0,0,-)                   void luapp_register_metatables();
 		
         // References. Supported without LuaPP features.
-        tagged(1,0,e)					std::shared_ptr<Reference> luapp_pop_reference(int refTable = LUA_REGISTRYINDEX);
-		tagged(1,0,e)					std::shared_ptr<Reference> luapp_read_reference(int index, int refTable = LUA_REGISTRYINDEX);
-        tagged(0,1,e)					void luapp_push_reference(std::shared_ptr<Reference>);
-		tagged(0,0,-)					void luapp_destroy_reference(std::shared_ptr<Reference>);
+        tagged(1,0,e)					ReferenceType luapp_pop_reference(int refTable = LUA_REGISTRYINDEX);
+		tagged(1,0,e)					ReferenceType luapp_read_reference(int index, int refTable = LUA_REGISTRYINDEX);
+        tagged(0,1,e)					void luapp_push_reference(ReferenceType);
+		tagged(0,0,-)					void luapp_destroy_reference(ReferenceType);
 		tagged(0,0,-)					void luapp_destroy_reference(Reference*);
 		
         // Required for most users. Might need luapp_register_metatables.
@@ -66,13 +67,29 @@ namespace Lua {
         tagged(0,1,-)                   int luapp_push_translated_function(std::function<int(Lua::State&)> const& function);
         tagged(0,0,-)            inline void luapp_add_translated_function(char const* name, std::function<int(Lua::State&)> const& function) { luapp_push_translated_function(function); setglobal(name); }
         tagged(0,1,-)                   template <typename T, typename ... Args> typename Lua::GenericDecay<T>::type* luapp_push_object(Args&& ... args) { return impl::MetatableManager<T>::Construct(GetState(),std::forward<Args>(args)...); }
-		tagged(0,1,-)					template <typename T> typename Lua::GenericDecay<T>::type* luapp_move_object(T&& arg);
+		tagged(0,1,-)					template <typename T> typename Lua::GenericDecay<T>::type* luapp_move_object(T&& arg) { return impl::MetatableManager<T>::Construct(GetState(),std::move(arg)); }
         tagged(0,0,0)                   template <typename T> T* luapp_get_object(int arg) { return impl::MetatableManager<T>::FromStack(GetState(),arg); }
         tagged(0,0,e)                   template <typename T> T& luapp_require_object(int arg) { T* ptr = impl::MetatableManager<T>::FromStack(GetState(),arg); if(!ptr) luaL_error(GetState(),"C++ / Lua Error: Stack item %d is not of type %s!",arg,impl::MetatableDescriptorImpl<T>::name()); return *ptr; }
-        tagged(0,0,0)                   template <typename T> static T* luapp_get_object(lua_State* s, int arg) { return impl::MetatableManager<T>::FromStack(s,arg); }
-        tagged(0,0,e)                   template <typename T> static T& luapp_require_object(lua_State* s, int arg) { T* ptr = impl::MetatableManager<T>::FromStack(s,arg); if(!ptr) luaL_error(s,"C++ / Lua Error: Stack item %d is not of type %s!",arg,impl::MetatableDescriptorImpl<T>::name()); return *ptr; }
-        
-        tagged(0,n,-)                   template <typename T> int luapp_push_returnvalue(T const& arg) { return Lua::TypeConverter<typename GenericDecay<T>::type>::Push(GetState(),arg); }
+		tagged(0,0,0)					template <typename T> std::optional<T> luapp_get_value(int id) { return Lua::TypeConverter<typename GenericDecay<T>::type>::Read(*this, id); }
+        tagged(0,n,-)                   template <typename T> int luapp_push_value(T const& arg) { return Lua::TypeConverter<typename GenericDecay<T>::type>::Push(*this, arg); }
+
+	private:
+		template <typename...> struct valuePusher;
+		template <> struct valuePusher<> {
+			static int push(State*) {
+				return 0;
+			}
+		};
+		template <typename T, typename... Args> struct valuePusher<T, Args...> {
+			static int push(State* s, T&& arg, Args&& ... args) {
+				return s->luapp_push_value<T>(std::forward<T>(arg))
+					+ valuePusher<Args...>::push(s, std::forward<Args>(args)...);
+			}
+		};
+	public:
+		tagged(0,n,-)					template <typename... Args> int luapp_push_values(Args&& ... args) {
+			return valuePusher<Args...>::push(this, std::forward<Args>(args)...);
+		}
 		
 		tagged(0,0,-)					int absindex(int);
 		tagged(2|1,1,e)					void arith(Operator);
