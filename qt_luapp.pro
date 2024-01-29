@@ -3,7 +3,7 @@ CONFIG += console c++17
 QT -= core gui app_bundle
 
 SOURCES += \
-	$$PWD/src/main.cpp
+	$$PWD/src/LuaPP_Main.cpp
 
 include(qt_luapp.pri)
 
