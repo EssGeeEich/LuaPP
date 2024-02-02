@@ -51,6 +51,10 @@ namespace Lua {
 		public:
 			ClassMemberFunctor() {}
 			ClassMemberFunctor(std::function<int(Lua::State&)> f) : m_functor(std::move(f)) {}
+
+            std::function<int(Lua::State&)> functor() const {
+                return m_functor;
+            }
 	
 			int operator() (Lua::State& state) const {
 				if(m_functor)
@@ -58,8 +62,7 @@ namespace Lua {
 				return 0;
 			}
 		};
-		
-		
+
 		template <typename T> using member_function_storage = std::map<std::string, impl::ClassMemberFunctor<T>>;
 		
 		template <typename T>
@@ -101,42 +104,49 @@ namespace Lua {
 				luaL_newmetatable(state, metatable::name());
 				lua_pushcfunction(state, &MetatableManager::Destroy);
 				lua_setfield(state, -2, "__gc");
+
+                member_function_storage<T>* mtPtr = nullptr;
+                metatable::metatable(mtPtr);
+                if(mtPtr) {
+                    for(auto it = mtPtr->begin(); it != mtPtr->end(); ++it) {
+                        std::string const& fncName = it->first;
+                        std::function<int(Lua::State&)> functor = it->second.functor();
+
+                        if(fncName.empty() || (fncName.length() >= 2 && fncName[0] == '_' && fncName[1] == '_'))
+                            continue;
+
+                        int success = impl::Functor::Push(state, functor);
+                        if(!success)
+                            continue;
+                        lua_setfield(state, -2, fncName.c_str());
+                    }
+                }
+
 				lua_pushcfunction(state, &MetatableManager::Index);
 				lua_setfield(state, -2, "__index");
 				lua_pop(state, 1);
+
+                markAllocation(AT_METATABLE, +1);
 				return 0;
 			}
 			static int Index(lua_State* state) {
 				T* p = (T*)(luaL_checkudata(state,1,metatable::name()));
 				if(!p)
 					return 0;
-	
-				std::string str;
-	
-				{
-					size_t len = 0;
-					char const* ptr = lua_tolstring(state,2,&len);
-					str.assign(ptr,len);
-				}
-	
-				member_function_storage<T>* mtPtr = nullptr;
-				metatable::metatable(mtPtr);
-				if(mtPtr)
-				{
-					member_function_storage<T>& mt = *mtPtr;
-					auto it = mt.find(str);
-					if(it == mt.end())
-						return 0;
-					typename member_function_storage<T>::value_type::second_type selected_function = it->second;
-					return impl::Functor::Push(state, [=](Lua::State& state) -> int { return selected_function(state); });
-				}
-				return 0;
+
+                luaL_getmetatable(state, metatable::name());
+                lua_pushvalue(state, 2);
+                lua_rawget(state, -2);
+                // lua_replace(state, -2);
+
+                return 1;
 			}
 			static int Destroy(lua_State* state) {
 				T* p = (T*)(luaL_checkudata(state,1,metatable::name()));
 				if(p)
 				{
 					try {
+                        markAllocation(AT_UDATA, -1);
 						p->~T();
 					} catch(lua_exception& e) {
 						return luaL_error(state, "C++ / Lua Exception thrown while destructing object %s.\n%s", metatable::name(), e.what());
@@ -157,6 +167,8 @@ namespace Lua {
 				T* p = (T*)lua_newuserdata(state, sizeof(T));
 				if(!p)
 					return nullptr;
+
+                markAllocation(AT_UDATA, +1);
 				luaL_getmetatable(state, metatable::name());
 				try {
 					new (p) T(std::forward<Args>(args)...);
@@ -181,9 +193,10 @@ namespace Lua {
 				T* p = (T*)lua_newuserdata(state, sizeof(T));
 				if(!p)
 					return 0;
+
+                markAllocation(AT_UDATA, +1);
 				luaL_getmetatable(state, metatable::name());
 				try {
-					//new (p) T(std::forward<Args>(args)...);
 					if(!metatable::construct(p))
 					{
 						lua_pop(state, 2);
@@ -221,7 +234,7 @@ namespace Lua {
 				luaL_requiref(state, lname.c_str(), allowConstructor ?
 								  &MetatableManager::RegisterMetatable :
 								  &MetatableManager::RegisterLoneMetatable,
-							  allowConstructor ? 1 : 0);
+				allowConstructor ? 1 : 0);
 				lua_pop(state, 1);
 			}
 		};

@@ -21,6 +21,13 @@
 #include <any>
 
 namespace Lua {
+    enum AllocType {
+        AT_UDATA,
+        AT_METATABLE
+    };
+    void markAllocation(AllocType, int count);
+    void printAllocations();
+
     class lua_exception : public std::exception {
         std::string m_what;
     protected:

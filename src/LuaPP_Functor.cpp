@@ -24,7 +24,7 @@ int Functor::Call(lua_State* s)
 		return 0;
 	
 	functor_type* p = (functor_type*)(state->checkudata(1,"luapp_functor"));
-	if(!p || !(*p))
+    if(!p || !(*p))
 		return 0;
 	
 	try {
@@ -41,8 +41,10 @@ int Functor::Call(lua_State* s)
 int Functor::Destroy(lua_State* state)
 {
 	functor_type* p = (functor_type*)(luaL_checkudata(state,1,"luapp_functor"));
-	if(p)
+    if(p) {
 		p->~functor_type();
+        markAllocation(AT_UDATA, -1);
+    }
 	return 0;
 }
 
@@ -57,6 +59,8 @@ int Functor::Push(lua_State* s, functor_type f)
 	functor_type* p = (functor_type*)(lua_newuserdata(s,sizeof(functor_type)));
 	if(!p)
 		return 0;
+
+    markAllocation(AT_UDATA, +1);
 	new (p) functor_type(std::move(f));
 	luaL_getmetatable(s, "luapp_functor");
 	lua_setmetatable(s, -2);
