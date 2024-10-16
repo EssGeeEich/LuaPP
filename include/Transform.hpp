@@ -24,7 +24,8 @@
 #include <type_traits>
 #include <optional>
 
-namespace Lua::impl {
+namespace Lua {
+namespace impl {
 
 template <typename T>
 void AssignOrSwap(T& oldReference, T&& newRReference) {
@@ -161,6 +162,7 @@ inline std::function<int(Lua::State&)> Transform(TRetVal (TClass::*fptr)(TArgs..
 	return impl::Transform(std::function<TRetVal(TArgs...)>([fptr, instance](TArgs... args) -> TRetVal {
 		return ((*instance).*fptr)(std::forward<TArgs>(args)...);
 	}));
+}
 }
 
 #endif
