@@ -2,6 +2,7 @@
 
 namespace Lua {
 
+// clang-format off
 int State::absindex(int index) { return lua_absindex(GetState(),index); }
 void State::arith(Operator op) { return lua_arith(GetState(),static_cast<int>(op)); }
 lua_CFunction State::atpanic(lua_CFunction f) { return lua_atpanic(GetState(),f); }
@@ -23,7 +24,7 @@ int State::getinfo(char const* what, lua_Debug* ar) { return lua_getinfo(GetStat
 int State::getmetatable(int index) { return lua_getmetatable(GetState(),index); }
 int State::gettable(int index) { return lua_gettable(GetState(),index); }
 int State::gettop() { return lua_gettop(GetState()); }
-int State::getuservalue(int index) { return lua_getuservalue(GetState(),index); }	
+int State::getuservalue(int index) { return lua_getuservalue(GetState(),index); }
 void State::insert(int index) { return lua_insert(GetState(),index); }
 bool State::isboolean(int index) { return lua_isboolean(GetState(),index) != 0; }
 bool State::iscfunction(int index) { return lua_iscfunction(GetState(),index) != 0; }
@@ -133,5 +134,6 @@ char const* State::tolstring_aux(int n, size_t* p) { return luaL_tolstring(GetSt
 char const* State::typename_aux(int n) { return luaL_typename(GetState(),n); }
 void State::unref(int n, int r) { return luaL_unref(GetState(),n,r); }
 void State::where(int index) { return luaL_where(GetState(),index); }
+// clang-format on
 
 }

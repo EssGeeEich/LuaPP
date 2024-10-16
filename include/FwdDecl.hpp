@@ -16,12 +16,16 @@
 #include "Enums.hpp"
 #include "LuaInclude.hpp"
 
-template <typename T> struct MetatableDescriptor;
+template <typename T>
+struct MetatableDescriptor;
 
 namespace Lua {
-    class Reference;
-    class State;
-	class StateManager;
-    template <typename> struct TypeConverter;
+
+class Reference;
+class State;
+class StateManager;
+template <typename>
+struct TypeConverter;
+
 }
 #endif

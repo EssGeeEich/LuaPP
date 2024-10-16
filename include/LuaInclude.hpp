@@ -17,15 +17,14 @@
 extern "C" {
 
 #if USE_SYSTEM_LUA
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
+#	include <lua.h>
+#	include <lualib.h>
+#	include <lauxlib.h>
 #else
-#include "dep/lua/lua.h"
-#include "dep/lua/lualib.h"
-#include "dep/lua/lauxlib.h"
+#	include "dep/lua/lua.h"
+#	include "dep/lua/lualib.h"
+#	include "dep/lua/lauxlib.h"
 #endif
-
 }
 
 #endif

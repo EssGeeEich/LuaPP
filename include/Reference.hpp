@@ -18,34 +18,36 @@
 #include <memory>
 
 namespace Lua {
-	class Reference {
-		friend class State;
-		
-	protected:
-		Reference();
-		explicit Reference(std::weak_ptr<Lua::State> state, int refTable, int refKey);
-		
-	public:
-		~Reference();
-		Reference(Reference&&);
-		Reference& operator= (Reference&&);
-		
-		void destroy();
-		explicit operator bool() const noexcept;
-		std::weak_ptr<Lua::State> state() const noexcept;
-		int key() const noexcept;
-		int table() const noexcept;
-		
-	private:
-		Reference(Reference const&) =delete;
-		Reference& operator= (Reference const&) =delete;
-		void reset();
-		
-		std::weak_ptr<Lua::State> m_state;
-		int m_refTable;
-		int m_refKey;
-	};
 
-	typedef std::shared_ptr<Reference> ReferenceType;
+class Reference {
+	friend class State;
+
+protected:
+	Reference();
+	explicit Reference(std::weak_ptr<Lua::State> state, int refTable, int refKey);
+
+public:
+	~Reference();
+	Reference(Reference&&);
+	Reference& operator=(Reference&&);
+
+	void destroy();
+	explicit operator bool() const noexcept;
+	std::weak_ptr<Lua::State> state() const noexcept;
+	int key() const noexcept;
+	int table() const noexcept;
+
+private:
+	Reference(Reference const&)            = delete;
+	Reference& operator=(Reference const&) = delete;
+	void reset();
+
+	std::weak_ptr<Lua::State> m_state;
+	int m_refTable;
+	int m_refKey;
+};
+
+typedef std::shared_ptr<Reference> ReferenceType;
+
 }
 #endif

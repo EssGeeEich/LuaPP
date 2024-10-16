@@ -25,6 +25,7 @@ class Functor {
 	static int Call(lua_State*);
 	static int Destroy(lua_State*);
 	typedef std::function<int(Lua::State&)> functor_type;
+
 public:
 	static void Register(lua_State*);
 	static int Push(lua_State*, functor_type);
