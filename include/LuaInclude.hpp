@@ -21,9 +21,9 @@ extern "C" {
 #	include <lualib.h>
 #	include <lauxlib.h>
 #else
-#	include "dep/lua/lua.h"
-#	include "dep/lua/lualib.h"
-#	include "dep/lua/lauxlib.h"
+#	include "lua.h"
+#	include "lualib.h"
+#	include "lauxlib.h"
 #endif
 }
 
