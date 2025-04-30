@@ -19,6 +19,7 @@
 
 namespace Lua::impl {
 
+class State;
 class Functor {
 	friend class State;
 	static int RegisterMetatable(lua_State*);
