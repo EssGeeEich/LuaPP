@@ -1,12 +1,12 @@
 #include "Utils.hpp"
 
-#ifdef _DEBUG
+#if _DEBUG
 #	include <map>
 #	include <iostream>
 #endif
 
 namespace Lua {
-#ifdef _DEBUG
+#if _DEBUG
 std::map<AllocType, int> allocations;
 
 void markAllocation(AllocType alloc, int count) {
