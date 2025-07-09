@@ -253,25 +253,30 @@ struct TypeConverter<std::vector<T>> {
 		if(!s.istable(id))
 			return std::nullopt;
 
+		lua_Unsigned itemCount = s.rawlen(id);
+
 		std::vector<T> v;
-		for(int i = 1;; ++i) {
-			s.pushinteger(i);
-			if(!s.next(id))
-				break;
+		v.reserve(itemCount);
+
+		for(lua_Unsigned i = 0; i < itemCount; ++i) {
+			s.rawgeti(id, i + 1);
 			std::optional<T> argt = TypeConverter<T>::Read(s, s.absindex(-1));
-			if(!argt)
+			if(!argt) {
+				s.pop(1);
+				v.clear();
 				break;
-			v.m_data.emplace_back(std::move(*argt));
-			s.pop(2);
+			}
+			v.emplace_back(std::move(*argt));
+			s.pop(1);
 		}
 		return std::move(v);
 	}
 	static std::size_t Push(lua_State* s, std::vector<T> const& v) {
 		int const top = s.gettop();
 
-		s.createtable(v.m_data.size(), 0);
-		for(std::size_t i = 0; i < v.m_data.size(); ++i) {
-			size_t const pushedValues = TypeConverter<T>::Push(s, v.m_data[i]);
+		s.createtable(v.size(), 0);
+		for(std::size_t i = 0; i < v.size(); ++i) {
+			size_t const pushedValues = TypeConverter<T>::Push(s, v[i]);
 
 			if(!pushedValues)
 				continue;
@@ -294,25 +299,30 @@ struct TypeConverter<std::deque<T>> {
 		if(!s.istable(id))
 			return std::nullopt;
 
+		lua_Unsigned itemCount = s.rawlen(id);
+
 		std::deque<T> v;
-		for(int i = 1;; ++i) {
-			s.pushinteger(i);
-			if(!s.next(id))
-				break;
+		v.reserve(itemCount);
+
+		for(lua_Unsigned i = 0; i < itemCount; ++i) {
+			s.rawgeti(id, i + 1);
 			std::optional<T> argt = TypeConverter<T>::Read(s, s.absindex(-1));
-			if(!argt)
+			if(!argt) {
+				s.pop(1);
+				v.clear();
 				break;
-			v.m_data.emplace_back(std::move(*argt));
-			s.pop(2);
+			}
+			v.emplace_back(std::move(*argt));
+			s.pop(1);
 		}
 		return std::move(v);
 	}
 	static std::size_t Push(Lua::State& s, std::deque<T> const& v) {
 		int const top = s.gettop();
 
-		s.createtable(v.m_data.size(), 0);
-		for(std::size_t i = 0; i < v.m_data.size(); ++i) {
-			size_t const pushedValues = TypeConverter<T>::Push(s, v.m_data[i]);
+		s.createtable(v.size(), 0);
+		for(std::size_t i = 0; i < v.size(); ++i) {
+			size_t const pushedValues = TypeConverter<T>::Push(s, v[i]);
 
 			if(!pushedValues)
 				continue;
@@ -335,25 +345,30 @@ struct TypeConverter<std::list<T>> {
 		if(!s.istable(id))
 			return std::nullopt;
 
+		lua_Unsigned itemCount = s.rawlen(id);
+
 		std::list<T> v;
-		for(int i = 1;; ++i) {
-			s.pushinteger(i);
-			if(!s.next(id))
-				break;
+		// v.reserve(itemCount);
+
+		for(lua_Unsigned i = 0; i < itemCount; ++i) {
+			s.rawgeti(id, i + 1);
 			std::optional<T> argt = TypeConverter<T>::Read(s, s.absindex(-1));
-			if(!argt)
+			if(!argt) {
+				s.pop(1);
+				v.clear();
 				break;
-			v.m_data.emplace_back(std::move(*argt));
-			s.pop(2);
+			}
+			v.emplace_back(std::move(*argt));
+			s.pop(1);
 		}
 		return std::move(v);
 	}
 	static std::size_t Push(Lua::State& s, std::list<T> const& v) {
 		int const top = s.gettop();
 
-		s.createtable(v.m_data.size(), 0);
-		for(std::size_t i = 0; i < v.m_data.size(); ++i) {
-			size_t const pushedValues = TypeConverter<T>::Push(s, v.m_data[i]);
+		s.createtable(v.size(), 0);
+		for(std::size_t i = 0; i < v.size(); ++i) {
+			size_t const pushedValues = TypeConverter<T>::Push(s, v[i]);
 
 			if(!pushedValues)
 				continue;
@@ -398,10 +413,10 @@ struct TypeConverter<std::map<TKey, TValue>> {
 		return std::move(m);
 	}
 	static size_t Push(Lua::State& s, std::map<TKey, TValue> const& v) {
-		s.createtable(0, v.m_data.size());
+		s.createtable(0, v.size());
 
 		int const top = s.gettop();
-		for(auto it = v.m_data.begin(); it != v.m_data.end(); ++it) {
+		for(auto it = v.begin(); it != v.end(); ++it) {
 			size_t const keyPushedValues = TypeConverter<TKey>::Push(s, it->first);
 			if(!keyPushedValues || keyPushedValues > 1) {
 				s.settop(top);
