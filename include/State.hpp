@@ -87,7 +87,9 @@ private:
 	template <typename T, typename... Args>
 	struct valuePusher<T, Args...> {
 		static std::size_t push(State* s, T&& arg, Args&&... args) {
-			return s->luapp_push_value<T>(std::forward<T>(arg)) + valuePusher<Args...>::push(s, std::forward<Args>(args)...);
+            std::size_t rv = s->luapp_push_value<T>(std::forward<T>(arg));
+            rv += valuePusher<Args...>::push(s, std::forward<Args>(args)...);
+            return rv;
 		}
 	};
 
