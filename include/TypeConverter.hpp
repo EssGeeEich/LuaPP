@@ -231,6 +231,20 @@ struct TypeConverter<bool> {
 	static std::string Name() { return "boolean"; }
 };
 
+template <typename T>
+struct TypeConverter<std::optional<T>> {
+	typedef std::optional<T> Arg;
+	static Arg Read(Lua::State& s, int id) { return TypeConverter<T>::Read(s, id); }
+	static std::size_t Push(Lua::State& s, Arg const& v) {
+		if(v)
+			return TypeConverter<T>::Push(s, *v);
+		else {
+			s.pushnil();
+			return 1;
+		}
+	}
+};
+
 // clang-format off
 template <> struct TypeConverter<unsigned short> : public impl::IntegerConverter<unsigned short>{};
 template <> struct TypeConverter<unsigned int> : public impl::IntegerConverter<unsigned int>{};
