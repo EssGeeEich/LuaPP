@@ -5,10 +5,10 @@ This is the official project page for SGH's LuaPP - Lua C++ Wrapper!
 
 Please note that LuaPP requires C++17.
 It can use the official Lua repository as a submodule, or a globally installed Lua library, depending on the compilation flags.
-It has been developed with Lua v5.3 and updated to v5.4.7.
+It has been developed with Lua v5.3 and updated to v5.4.8.
 
 # License
-Copyright (c) 2015-2023 Mauro Grassia
+Copyright (c) 2015-2025 Mauro Grassia
 
     Permission is granted to use, modify and redistribute this software.
     Modified versions of this software MUST be marked as such.
